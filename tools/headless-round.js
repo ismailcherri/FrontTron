@@ -6,8 +6,10 @@ export function seedRound(seed) {
   let s = seed;
   Math.random = () => (s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296;
 }
-export function roomWith(levels, preset) {
+export function roomWith(levels, preset, { arenaView, arenaShape } = {}) {
   const room = new Room('Evaluation');
+  if (arenaView) room.config.arenaView = arenaView;
+  if (arenaShape) room.config.topDownShape = arenaShape;
   for (const [i, difficulty] of levels.entries()) {
     const p = new Player(
       difficulty ? null : { id: i + 1, active: true },
@@ -28,12 +30,12 @@ export function roomWith(levels, preset) {
 
 // Run a complete round with the production physics, timers, sensors and input cadence.
 // Returning a seat also identifies the winner when both riders are the same policy.
-export function playRound(seed, levels, { selectMove, preset } = {}) {
+export function playRound(seed, levels, { selectMove, preset, ...arena } = {}) {
   const original = Math.random;
   mock.timers.enable({ apis: ['setTimeout', 'setInterval', 'Date'], now: 10000 });
   try {
     seedRound(seed);
-    const game = roomWith(levels, preset);
+    const game = roomWith(levels, preset, arena);
     const seats = game.room.players.items;
     if (selectMove)
       game.drivers.selectMove = (level, obs) =>

@@ -17,7 +17,7 @@ Mimic offers a different driving style at roughly Hard strength in the paired ev
 ## Implementation phases
 
 1. **Room integration.** The server owns bot players directly and registers their avatars for the same match broadcasts as human riders. Hosts manage bots in the ready room. Human connections retain control of hosting, votes and spectator counts. The match stops when the last human rider departs. Room discovery reports human riders and bots separately.
-2. **Reactive and predictive drivers.** The drivers read the square world before the physics step. A spatial index contains the real trail discs and clears with the arena. Prediction uses a separate candidate trail, accounts for self-trail grace, wraparound, steering inversion, right-angle turns, speed, radius and observed shield expiry. The isometric renderer has no role in decisions.
+2. **Reactive and predictive drivers.** The drivers read the arena’s width, height and rider positions before the physics step. Both square views present the same world to the bots. On widescreen, drivers use the longer horizontal axis for wall clearance and wraparound. A spatial index contains the real trail discs and clears with the arena. Prediction uses a separate candidate trail and accounts for self-trail grace, wraparound, steering inversion, right-angle turns, speed, radius and observed shield expiry.
 3. **Tactics and imitation.** Hard ranks safe routes by reachable territory. Mimic ships with a versioned model, an offline trainer and optional demonstration export. Its reaction interval, input choices and model weights remain fixed throughout a match.
 4. **Evaluation and hosting.** Seeded headless rounds, collision scenarios and a multi-room WebSocket benchmark exercise the same engine as the browser. Decisions are staggered. Each room evaluates at most one driver per physics step. Live rooms share a four-millisecond decision budget per 16 ms window. A decision already in progress finishes, then other riders keep their last input until the next opportunity.
 5. **Reinforcement learning.** Apex trains offline against baseline opponents and frozen versions of itself. We select its weights on validation rounds and evaluate the bundled policy against Hard and Mimic on fresh seeds.
@@ -71,6 +71,20 @@ Each matchup used 200 held-out starting setups, with 40 per pickup preset and bo
 | No bonuses | 38–38–4–0 | 45–28–7–0 |
 
 Apex won more rounds than Mimic under every tested preset. It split the no-bonus rounds evenly with Hard and fell furthest behind Hard on Solo. These figures describe two-rider play.
+
+## Playing strength across arena views
+
+`npm run bots:evaluate -- 256` plays each matchup in isometric square, top-down square and top-down widescreen. Each setting uses the same 256 seeds, plays both seat orders and enables the default pickups. Each table entry gives the first rider’s share of decided rounds, with wins and losses in parentheses. Simultaneous eliminations and 60-second timeouts are excluded from the percentages.
+
+| Matchup | Isometric square | Top-down square | Top-down widescreen |
+| --- | ---: | ---: | ---: |
+| Normal vs Easy | 73.9% (366–129) | 73.9% (366–129) | 73.2% (369–135) |
+| Hard vs Normal | 59.6% (289–196) | 59.6% (289–196) | 60.2% (284–188) |
+| Mimic vs Hard | 52.7% (254–228) | 52.7% (254–228) | 51.7% (246–230) |
+| Apex vs Hard | 55.1% (272–222) | 55.1% (272–222) | 54.1% (259–220) |
+| Apex vs Mimic | 62.1% (292–178) | 62.1% (292–178) | 59.2% (283–195) |
+
+The regression suite also replays seeded rounds in both square views and compares every bot’s steering and position at each decision. On widescreen it places each difficulty in the extra track space to test trail avoidance, right and bottom walls, and collecting a pickup across each wraparound seam.
 
 ## Verification
 

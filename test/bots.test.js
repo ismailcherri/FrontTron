@@ -12,6 +12,7 @@ import {
   probabilities,
 } from '../server/ai/reinforcement.js';
 import { pairedMatches, matchSeed } from '../tools/reinforcement-matches.js';
+import { playRound, roomWith } from '../tools/headless-round.js';
 import { botForm } from '../public/views.js';
 import { difficulties } from '../public/bots.js';
 import Room from '../server/engine/server/model/Room.js';
@@ -86,6 +87,73 @@ test('bots use both widescreen bounds for steering and wrapped targets', () => {
   assert.ok(rollout(s, 0, 0).x < 20);
   assert.deepEqual(nearest(s, 157, 87, [{ x: 2, y: 3 }]), { dx: 5, dy: 6, distance: Math.sqrt(61) });
 });
+
+test('all difficulties replay the same steering and outcomes in either square view', () => {
+  function replay(levels, arenaView) {
+    const decisions = [];
+    const result = playRound(736147, levels, {
+      arenaView,
+      arenaShape: 'square',
+      selectMove(level, obs, seat) {
+        const move = chooseMove(level, obs);
+        decisions.push([seat, obs.avatar.x, obs.avatar.y, move]);
+        return move;
+      },
+    });
+    assert.equal(new Set(decisions.map(([seat]) => seat)).size, levels.length);
+    return { decisions, result };
+  }
+  for (const levels of [['easy', 'normal', 'hard'], ['mimic', 'reinforcement']]) {
+    assert.deepEqual(replay(levels, 'top-down'), replay(levels, 'isometric'));
+  }
+});
+
+test('every difficulty avoids trails and walls and collects pickups across both widescreen seams', (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'setInterval', 'Date'], now: 1000 });
+  const arena = { arenaView: 'top-down', arenaShape: 'widescreen' };
+  const encounters = [
+    { name: 'trail', fromRight: 23, trail: true },
+    { name: 'right wall', fromRight: 8 },
+    { name: 'bottom wall', fromRight: 22, vertical: true },
+    { name: 'wrap right', fromRight: 8, wrap: true },
+    { name: 'wrap down', fromRight: 22, vertical: true, wrap: true },
+  ];
+  for (const level of Object.keys(difficulties)) {
+    for (const { name, fromRight, vertical, wrap, trail } of encounters) {
+      const game = roomWith([level], 'No bonuses', arena);
+      const { width, height } = game.world;
+      const rider = game.avatars.getFirst();
+      const x = width - fromRight;
+      const y = vertical ? height - 8 : height / 2;
+      assert.ok(x > height); // Run every encounter in the extra part of the track.
+      rider.setPosition(x, y);
+      rider.setAngle(vertical ? Math.PI / 2 : 0);
+      game.setBorderless(wrap);
+      game.world.activate();
+      if (trail) {
+        const rival = new Player(null, 'Trail', '#ffffff').getAvatar();
+        for (let i = -10; i <= 10; i++)
+          game.onPoint({ avatar: rival, x: x + 8, y: y + i * rider.radius });
+      }
+      if (wrap) {
+        game.bonusManager.world.activate();
+        const Pickup = game.room.config.bonusTypes.BonusSelfSmall;
+        game.bonusManager.add(new Pickup(vertical ? x : 6, vertical ? 6 : y));
+      }
+      for (let tick = 0; tick < 80 && game.inRound; tick++) t.mock.timers.tick(16);
+      const label = level + ' / ' + name;
+      assert.ok(rider.alive, label);
+      if (wrap) {
+        assert.ok((vertical ? rider.y : rider.x) < 16, label);
+        assert.equal(game.bonusManager.bonuses.count(), 0, label);
+      } else {
+        assert.ok(Math.abs(vertical ? rider.x - x : rider.y - y) > rider.radius, label);
+      }
+      game.abort();
+    }
+  }
+});
+
 test('the tactical planner takes contested space while the normal planner follows a clear lane', () => {
   const s = scene();
   s.avatar.x = 22;
