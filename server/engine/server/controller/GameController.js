@@ -462,6 +462,15 @@ GameController.prototype.onBonusStack = function(data)
 GameController.prototype.onGameStart = function(data)
 {
     this.socketGroup.addEvent('game:start');
+    if (this.view.round === 1) this.reportMatchEvent('game_started');
+    this.reportMatchEvent('round_started');
+};
+
+// Each shared milestone is reported by one connected rider, regardless of room size.
+GameController.prototype.reportMatchEvent = function(event)
+{
+    const rider = this.clients.items.find(client => client.isPlaying());
+    rider?.addEvent('match:analytics', event);
 };
 
 /**
@@ -545,5 +554,6 @@ GameController.prototype.onEnd = function(data)
 {
     const leader = this.game.gameWinner || this.game.sortAvatars(this.game.getPresentAvatars()).getFirst();
     this.socketGroup.addEvent('end', leader?.id ?? null);
+    if (this.game.gameWinner) this.reportMatchEvent('game_completed');
     this.unloadGame();
 };

@@ -1,4 +1,5 @@
 import { Connection } from './net.js';
+import { trackEvent } from './analytics.js';
 import { mountArena } from './arena.js';
 import { botLimit, drivingSchema } from './bots.js';
 import { mountGuide } from './guide-demos.js';
@@ -42,7 +43,6 @@ let stopCanvas = () => {},
   routeVersion = 0;
 let lastActivity = Date.now(),
   active = true,
-  analyticsId = '',
   framePending = false;
 const playingSounds = new Set();
 function sound(name) {
@@ -55,31 +55,8 @@ function sound(name) {
   audio.onerror = done;
   audio.play().catch(done);
 }
-fetch('/config.json')
-  .then((r) => r.json())
-  .then((c) => {
-    if (c.analytics && /^(G-|UA-)[A-Z0-9-]+$/.test(c.analytics)) {
-      analyticsId = c.analytics;
-      window.dataLayer = window.dataLayer || [];
-      window.gtag = function () {
-        window.dataLayer.push(arguments);
-      };
-      const s = document.createElement('script');
-      s.async = true;
-      s.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(c.analytics);
-      document.head.append(s);
-      window.gtag('js', new Date());
-      window.gtag('config', c.analytics, { send_page_view: false });
-      pageView();
-    }
-  })
-  .catch(() => {});
 function pageView() {
-  if (analyticsId)
-    window.gtag('event', 'page_view', {
-      page_title: state.match ? 'Match' : state.room ? 'Room' : 'Lobby',
-      page_location: location.origin + location.pathname + location.hash.split('?')[0],
-    });
+  trackEvent('page_view', state.match ? 'Match' : state.room ? 'Room' : 'Lobby');
 }
 function toast(message) {
   const el = $('#toast');
@@ -428,6 +405,7 @@ async function join(name, password) {
   }
   closeModal();
   state.room = res.room;
+  trackEvent('room_joined', res.room.game ? 'Match' : 'Room');
   state.master = res.master;
   state.launching = res.launching || 0;
   for (const p of state.room.players) hydrate(p);
@@ -506,10 +484,14 @@ function showCredits() {
   openModal(
     'credits',
     'Credits',
-    '<p>FrontTron carries forward Langtron, a fork of Curvytron. Thomas Jarrand, Jérémy Fagis, and Johan Dufour created the original game at Elao, inspired by Curve Fever.</p><p>Balancing and development contributions from Emeric Kasbarian and Jérémy James. Thanks to Jeremy, Nicolas, Camille, Maxime, Benjamin, Florian, Guewen, and Xavier.</p><p>Languages + Analysis Team 4 Ever</p><a href="/sounds/CREDITS.txt" target="_blank" rel="noopener">Sound credits</a>',
+    '<p>FrontTron carries forward Langtron, a fork of Curvytron. Thomas Jarrand, Jérémy Fagis, and Johan Dufour created the original game at Elao, inspired by Curve Fever.</p><p>Balancing and development contributions from Emeric Kasbarian and Jérémy James. Thanks to Jeremy, Nicolas, Camille, Maxime, Benjamin, Florian, Guewen, and Xavier.</p><p>Frontend and Web Team 4 Ever</p><a href="/sounds/CREDITS.txt" target="_blank" rel="noopener">Sound credits</a>',
   );
 }
 net.addEventListener('event', ({ detail: [event, d] }) => {
+  if (event === 'match:analytics') {
+    trackEvent(d, 'Match');
+    return;
+  }
   if (event === 'driving:sample') {
     if (recording && examples.length < 10000) {
       examples.push(d);
@@ -763,6 +745,7 @@ document.addEventListener('click', async (e) => {
         location.href.split('#')[0] + pathFor(state.room.name, state.room.config.password);
       try {
         await navigator.clipboard.writeText(url);
+        trackEvent('invite_copied', 'Room');
         toast('Room link copied.');
       } catch {
         openModal(
@@ -855,6 +838,7 @@ document.addEventListener('submit', async (e) => {
           'That room name is already taken.',
         );
         if (res.success) {
+          trackEvent('room_created', 'Lobby');
           closeModal();
           location.hash = pathFor(res.room.name);
         }
@@ -960,4 +944,5 @@ setInterval(() => {
   }
 }, 200);
 render();
+pageView();
 net.open();

@@ -51,7 +51,28 @@ Use your domain in place of the example. In a container platform, set the build 
 | --- | --- |
 | PORT | HTTP and WebSocket port. Default 8080. |
 | HOST | Bind address. Default 0.0.0.0. |
-| ANALYTICS_ID | Optional Google Analytics measurement ID for page views. |
+| ANALYTICS_ID | Defaults to the Google Tag Manager container `GTM-W8X5XVH5`. Set a different GTM container ID or a GA4 measurement ID (`G-…`) to override it. Set an empty value to disable tracking. |
+
+## Google Analytics
+
+Use **Event count** for `game_started` in GA4 to see how many matches were played. The server selects one connected rider to report each shared match event. As with other browser analytics, blocked tags can reduce reported counts.
+
+| Event | When FrontTron sends it |
+| --- | --- |
+| `room_created` | The server accepts a new room. |
+| `room_joined` | A browser successfully enters a room, including the creator or a spectator. |
+| `invite_copied` | The room invite is copied to the clipboard. |
+| `game_started` | The first round begins racing. Each rematch counts as a new game. |
+| `round_started` | A round begins racing, including the first round. |
+| `game_completed` | A match ends with a winner at the target score. |
+| `page_view` | The browser shows the lobby, room, or match screen. |
+
+To route these events from the default GTM container to your GA4 web stream:
+
+1. Configure a **Google tag** with your stream’s measurement ID on **Initialization – All Pages**. Set `send_page_view` to `false` and turn off automatic history-based page views in the web stream’s enhanced measurement settings. FrontTron supplies its own screen views.
+2. Create a **Custom Event** trigger. Enable regex matching and use `^(room_created|room_joined|invite_copied|game_started|round_started|game_completed|page_view)$`.
+3. Create a **Google Analytics: GA4 Event** tag with the same measurement ID, set **Event Name** to the built-in `{{Event}}` variable, and attach that trigger. Add `page_title` and `page_location` as event parameters, each mapped to a Data Layer Variable of the same name. FrontTron supplies a screen title and a generic URL such as `/room` so these events omit private invite codes and room names.
+4. In **Preview**, create a room and play a match. Check the events in GA4 **DebugView**, then publish the container. [Google’s event setup guide](https://support.google.com/tagmanager/answer/13034206)
 
 ## Verification and source
 

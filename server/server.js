@@ -33,7 +33,7 @@ export function createGameServer(options = {}) {
       if (pathname === '/config.json') {
         return res
           .writeHead(200, { 'Content-Type': 'application/json' })
-          .end(JSON.stringify({ analytics: options.analytics || null }));
+          .end(JSON.stringify({ analytics: options.analytics ?? 'GTM-W8X5XVH5' }));
       }
       const file = resolve(root, '.' + (pathname === '/' ? '/index.html' : pathname));
       if (!file.startsWith(root + sep) || !types[extname(file)]) return res.writeHead(404).end();

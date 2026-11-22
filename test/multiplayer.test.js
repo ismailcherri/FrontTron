@@ -59,6 +59,9 @@ test(
       b = await s.peer(),
       spectator = await s.peer();
     const name = 'Test track';
+    const matchEvents = () => [a, b, spectator].flatMap((peer) =>
+      peer.log.filter(([name]) => name === 'match:analytics').map(([, event]) => event),
+    );
     await a.request('room:create', { name });
     for (const p of [a, b]) {
       await p.request('room:join', { name });
@@ -77,6 +80,7 @@ test(
     await a.wait('round:new');
     await a.wait('game:start');
     await b.wait('game:start');
+    assert.deepEqual(matchEvents(), ['game_started', 'round_started']);
     b.log.length = 0;
     a.send('player:move', { avatar: a.rider, move: 1 });
     await b.wait('angle', (v) => v[0] === a.rider);
@@ -107,6 +111,10 @@ test(
     const winner = await a.wait('round:end');
     assert.equal(winner, a.rider);
     assert.equal(await spectator.wait('end'), a.rider);
+    await a.wait('end');
+    await b.wait('end');
+    assert.deepEqual(matchEvents(), ['game_completed']);
+    assert.ok(!spectator.log.some(([name]) => name === 'match:analytics'));
     assert.equal(room.game, undefined);
     assert.ok(room.players.items.every((p) => p.ready === false));
     await a.request('room:ready', { player: a.rider });
