@@ -1,4 +1,4 @@
-// Positions use the square simulation world. A decision describes a physical steer
+// Positions use simulation world units. A decision describes a physical steer
 // (left/straight/right); convert it to the rider's actual button at the input boundary.
 export const turns = [0, -1, 1];
 const clamp = (n, low, high) => Math.min(high, Math.max(low, n));
@@ -16,25 +16,25 @@ export function observe(game, avatar) {
   return {
     avatar,
     shieldMs,
-    size: game.size,
+    width: game.world.width,
+    height: game.world.height,
     field: game.world.botField,
     wrap: game.borderless,
     pickups: game.bonusManager.bonuses.items,
     rivals: game.avatars.items.filter((other) => other !== avatar && other.alive && other.present),
   };
 }
-function delta(obs, a, b) {
-  let d = a - b;
-  if (obs.wrap && Math.abs(d) > obs.size / 2) d -= Math.sign(d) * obs.size;
-  return d;
+function delta(distance, extent, wrap) {
+  if (wrap && Math.abs(distance) > extent / 2) return distance - Math.sign(distance) * extent;
+  return distance;
 }
 export function nearest(obs, x, y, items) {
   let distance = Infinity,
     dx = 0,
     dy = 0;
   for (const item of items) {
-    const u = delta(obs, item.x, x),
-      v = delta(obs, item.y, y);
+    const u = delta(item.x - x, obs.width, obs.wrap),
+      v = delta(item.y - y, obs.height, obs.wrap);
     if (u * u + v * v < distance) {
       distance = u * u + v * v;
       dx = u;
@@ -46,15 +46,15 @@ export function nearest(obs, x, y, items) {
 function wrapPosition(x, size) {
   return ((x % size) + size) % size;
 }
-function wall(obs, x, y, radius) {
-  return !obs.wrap && (x < radius || y < radius || x > obs.size - radius || y > obs.size - radius);
+export function edgeDistance(obs, x, y) {
+  return Math.min(x, y, obs.width - x, obs.height - y);
 }
 function shielded(obs, elapsed) {
   return obs.avatar.invincible && elapsed < (obs.shieldMs ?? Infinity);
 }
 function occupied(obs, x, y, radius, serial, elapsed = 0) {
   return (
-    wall(obs, x, y, radius) ||
+    (!obs.wrap && edgeDistance(obs, x, y) < radius) ||
     (!shielded(obs, elapsed) && obs.field.blocked(x, y, radius, obs.avatar, serial))
   );
 }
@@ -75,8 +75,8 @@ export function ray(
     let x = startX + ux * d,
       y = startY + uy * d;
     if (obs.wrap) {
-      x = wrapPosition(x, obs.size);
-      y = wrapPosition(y, obs.size);
+      x = wrapPosition(x, obs.width);
+      y = wrapPosition(y, obs.height);
     }
     if (occupied(obs, x, y, a.radius, serial, elapsed + (d * 1000) / a.velocity)) return d / reach;
   }
@@ -116,11 +116,11 @@ export function rollout(obs, first, second, horizon = 1050) {
     x += Math.cos(angle) * distance;
     y += Math.sin(angle) * distance;
     let crossed = false;
-    if (obs.wrap && (x < 0 || y < 0 || x > obs.size || y > obs.size)) {
+    if (obs.wrap && (x < 0 || y < 0 || x > obs.width || y > obs.height)) {
       // World.getOposite discards overshoot on one axis.
-      if (x < 0) x = obs.size;
-      else if (x > obs.size) x = 0;
-      else if (y < 0) y = obs.size;
+      if (x < 0) x = obs.width;
+      else if (x > obs.width) x = 0;
+      else if (y < 0) y = obs.height;
       else y = 0;
       crossed = true;
     }
@@ -147,7 +147,7 @@ export function rollout(obs, first, second, horizon = 1050) {
 }
 function preference(obs, path) {
   const pickup = nearest(obs, path.x, path.y, obs.pickups).distance;
-  const edge = Math.min(path.x, path.y, obs.size - path.x, obs.size - path.y);
+  const edge = edgeDistance(obs, path.x, path.y);
   return (
     (Number.isFinite(pickup) ? 1.6 / (1 + pickup / 9) : 0) +
     (obs.wrap ? 0 : clamp(edge / 14, 0, 1) * 0.65) -
@@ -159,21 +159,22 @@ function preference(obs, path) {
 // Compare access to free cells from the candidate and from rivals' projected heads.
 // This coarse grid only ranks viable trajectories. Precise trail probes decide collisions.
 function territory(obs) {
-  const n = 18,
-    span = obs.size / n,
-    blocked = new Uint8Array(n * n),
-    queue = new Int16Array(n * n);
+  const rows = 18,
+    span = obs.height / rows,
+    columns = Math.round(obs.width / span),
+    blocked = new Uint8Array(rows * columns),
+    queue = new Int16Array(blocked.length);
   const index = (x, y) =>
-    clamp(Math.floor(y / span), 0, n - 1) * n + clamp(Math.floor(x / span), 0, n - 1);
+    clamp(Math.floor(y / span), 0, rows - 1) * columns + clamp(Math.floor(x / span), 0, columns - 1);
   for (let i = 0; i < blocked.length; i++) {
-    const x = ((i % n) + 0.5) * span,
-      y = (Math.floor(i / n) + 0.5) * span;
+    const x = ((i % columns) + 0.5) * span,
+      y = (Math.floor(i / columns) + 0.5) * span;
     blocked[i] = Number(
       occupied(obs, x, y, Math.max(obs.avatar.radius, span * 0.54), obs.avatar.bodyCount),
     );
   }
   function flood(starts) {
-    const dist = new Int16Array(n * n).fill(-1);
+    const dist = new Int16Array(blocked.length).fill(-1);
     let head = 0,
       tail = 0;
     for (const start of starts)
@@ -183,17 +184,17 @@ function territory(obs) {
       }
     while (head < tail) {
       const id = queue[head++],
-        row = Math.floor(id / n),
-        col = id % n;
+        row = Math.floor(id / columns),
+        col = id % columns;
       for (const [dx, dy] of neighbors) {
         let u = col + dx,
           v = row + dy;
         if (obs.wrap) {
-          u = (u + n) % n;
-          v = (v + n) % n;
+          u = (u + columns) % columns;
+          v = (v + rows) % rows;
         }
-        if (u < 0 || v < 0 || u >= n || v >= n) continue;
-        const next = v * n + u;
+        if (u < 0 || v < 0 || u >= columns || v >= rows) continue;
+        const next = v * columns + u;
         if (!blocked[next] && dist[next] < 0) {
           dist[next] = dist[id] + 1;
           queue[tail++] = next;
@@ -206,8 +207,8 @@ function territory(obs) {
     const x = r.x + Math.cos(r.angle) * r.velocity * 0.45,
       y = r.y + Math.sin(r.angle) * r.velocity * 0.45;
     return index(
-      obs.wrap ? wrapPosition(x, obs.size) : x,
-      obs.wrap ? wrapPosition(y, obs.size) : y,
+      obs.wrap ? wrapPosition(x, obs.width) : x,
+      obs.wrap ? wrapPosition(y, obs.height) : y,
     );
   });
   const enemies = flood(predicted),
@@ -219,7 +220,7 @@ function territory(obs) {
       let area = 0;
       for (let i = 0; i < mine.length; i++)
         if (mine[i] >= 0) area += enemies[i] < 0 || mine[i] < enemies[i] ? 1 : 0.15;
-      cache.set(id, area / (n * n));
+      cache.set(id, area / blocked.length);
     }
     return cache.get(id);
   };

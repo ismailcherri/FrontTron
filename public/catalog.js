@@ -1,3 +1,17 @@
+export const arenaViews = {
+  isometric: 'Isometric',
+  'top-down': 'Classic top-down',
+};
+export const arenaShapes = {
+  square: 'Square',
+  widescreen: 'Widescreen (16:9)',
+};
+export function arenaShapeForView(view, shape) {
+  return view === 'top-down' && shape === 'widescreen' ? 'widescreen' : 'square';
+}
+export function arenaDimensions(height, shape) {
+  return { width: shape === 'widescreen' ? height * 16 / 9 : height, height };
+}
 export const bonuses = {
   BonusSelfFast: 'Afterburner',
   BonusEnemyFast: 'Enemy boost',

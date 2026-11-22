@@ -15,7 +15,7 @@ export default function BonusManager(game, bonuses, rate)
 {
     BaseBonusManager.call(this, game);
 
-    this.world           = new World(this.game.size, 1);
+    this.world           = new World(this.game.getDimensions(), 1);
     this.popingTimeout   = null;
     this.bonusTypes      = bonuses;
     this.bonusPopingTime = this.bonusPopingTime - ((this.bonusPopingTime/2) * rate);
@@ -113,20 +113,14 @@ BonusManager.prototype.popBonus = function ()
  */
 BonusManager.prototype.getRandomPosition = function(radius, border)
 {
-    var margin = radius + border * this.game.world.size,
-        body   = new Body(
-            this.game.world.getRandomPoint(margin),
-            this.game.world.getRandomPoint(margin),
-            margin
-        );
-
-    for (let attempt = 0; !this.game.world.testBody(body) || !this.world.testBody(body); attempt++) {
-        if (attempt === 100) return null;
-        body.x = this.game.world.getRandomPoint(margin);
-        body.y = this.game.world.getRandomPoint(margin);
+    const arena = this.game.world;
+    const margin = radius + border * arena.height;
+    const body = new Body(0, 0, margin);
+    for (let attempt = 0; attempt <= 100; attempt++) {
+        arena.randomizePosition(body, margin);
+        if (arena.testBody(body) && this.world.testBody(body)) return [body.x, body.y];
     }
-
-    return [body.x, body.y];
+    return null;
 };
 
 /**
@@ -233,5 +227,5 @@ BonusManager.prototype.getRandomBonusType = function()
 BonusManager.prototype.setSize = function()
 {
     this.world.clear();
-    this.world = new World(this.game.size, 1);
+    this.world = new World(this.game.getDimensions(), 1);
 };

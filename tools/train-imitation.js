@@ -38,7 +38,8 @@ function episode() {
   }
   const spot = () => ({ x: random() * size, y: random() * size });
   return {
-    size,
+    width: size,
+    height: size,
     field,
     avatar,
     wrap: random() < 0.15,

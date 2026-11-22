@@ -1,5 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { difficulties } from '../public/bots.js';
+import { arenaShapes, arenaViews } from '../public/catalog.js';
 import Collection from './engine/shared/Collection.js';
 
 const integer = Number.isSafeInteger;
@@ -24,6 +25,10 @@ const rpc = new Map(
     'room:color': (data) => player(data) && hex(data.color),
     'room:name': (data) => player(data) && name(data),
     'room:config:open': (data) => typeof data?.open === 'boolean',
+    'room:config:arena-view': (data) =>
+      typeof data?.arenaView === 'string' && Object.hasOwn(arenaViews, data.arenaView),
+    'room:config:arena-shape': (data) =>
+      typeof data?.arenaShape === 'string' && Object.hasOwn(arenaShapes, data.arenaShape),
     'room:config:max-score': (data) =>
       data && (data.maxScore === null || (integer(data.maxScore) && data.maxScore > 0)),
     'room:config:variable': (data) =>

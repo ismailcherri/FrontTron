@@ -1264,6 +1264,12 @@ dialog.field-guide {
 .match-arena:before {
   mask-image: none;
 }
+.match-arena.top-down {
+  aspect-ratio: 1;
+}
+.match-arena.top-down.widescreen {
+  aspect-ratio: 16 / 9;
+}
 .match-arena canvas {
   position: absolute;
   width: 100%;

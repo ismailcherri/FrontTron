@@ -42,7 +42,8 @@ export default function GameController(game)
         onMove: function (data) { controller.onMove(this, data); }
     };
 
-    this.view = makeMatch(game.room.players.items.map(player => player.serialize()), game.size, game.maxScore);
+    this.view = makeMatch(game.room.players.items.map(player => player.serialize()), game.size,
+        game.maxScore, game.room.config.arenaView, game.room.config.arenaShape);
     const broadcast = this.socketGroup.addEvent.bind(this.socketGroup);
     this.socketGroup.addEvent = (name, data) => {
         applyMatchEvent(this.view, name, data);
@@ -490,7 +491,9 @@ GameController.prototype.onGameStop = function(data)
  */
 GameController.prototype.onRoundNew = function(data)
 {
-    this.socketGroup.addEvent('round:new', { size: this.game.size, warmup: this.game.warmupTime });
+    this.socketGroup.addEvent('round:new', {
+        size: this.game.size, arenaShape: this.game.room.config.arenaShape, warmup: this.game.warmupTime
+    });
 };
 
 /**

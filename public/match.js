@@ -1,8 +1,14 @@
+import { arenaDimensions, arenaShapeForView } from './catalog.js';
+
 // Display coordinates stay in world units until the canvas projects them.
-export function makeMatch(players, size, maxScore) {
+export function makeMatch(players, size, maxScore, arenaView = 'isometric', arenaShape = 'square') {
+  arenaShape = arenaShapeForView(arenaView, arenaShape);
   return {
     size,
+    ...arenaDimensions(size, arenaShape),
+    arenaShape,
     maxScore,
+    arenaView,
     phase: 'loading',
     round: 0,
     countdownEnd: 0,
@@ -42,7 +48,8 @@ export function makeMatch(players, size, maxScore) {
 
 function move(match, racer, x, y) {
   if (!racer) return;
-  const wrapped = Math.hypot(x - racer.x, y - racer.y) > match.size / 2;
+  const wrapped = Math.abs(x - racer.x) > (match.width ?? match.size) / 2 ||
+    Math.abs(y - racer.y) > (match.height ?? match.size) / 2;
   if (racer.alive && racer.printing && racer.x !== null && !wrapped) {
     if (racer.stroke < 0) {
       racer.stroke =
@@ -65,6 +72,8 @@ export function applyMatchEvent(match, name, data) {
   switch (name) {
     case 'round:new':
       match.size = data.size;
+      match.arenaShape = arenaShapeForView(match.arenaView, data.arenaShape ?? match.arenaShape);
+      Object.assign(match, arenaDimensions(data.size, match.arenaShape));
       match.round++;
       match.phase = 'warmup';
       match.countdownEnd = Date.now() + data.warmup;

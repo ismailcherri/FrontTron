@@ -5,18 +5,22 @@ import Island from './Island.js';
 /**
  * World
  */
-export default function World(size, islands)
+export default function World(dimensions, islands)
 {
-    islands = typeof(islands) === 'number' ? islands : Math.round(size / this.islandGridSize);
+    const {width, height} = typeof dimensions === 'number'
+        ? {width: dimensions, height: dimensions} : dimensions;
+    const rows = islands ?? Math.max(1, Math.round(height / this.islandGridSize));
 
-    this.size       = size;
+    this.width      = width;
+    this.height     = height;
     this.islands    = new Collection();
-    this.islandSize = this.size / islands;
+    this.islandSize = height / rows;
     this.active     = false;
     this.bodyCount  = 0;
 
-    for (var id, x, y = islands - 1; y >= 0; y--) {
-        for (x = islands- 1; x >= 0; x--) {
+    const columns = Math.ceil(width / this.islandSize);
+    for (var id, x, y = rows - 1; y >= 0; y--) {
+        for (x = columns - 1; x >= 0; x--) {
             id = x.toString() + ':' + y.toString();
             this.islands.add(new Island(id, this.islandSize, x * this.islandSize, y * this.islandSize));
         }
@@ -40,6 +44,7 @@ World.prototype.islandGridSize = 40;
  */
 World.prototype.getIslandByPoint = function(pX, pY)
 {
+    if (pX < 0 || pY < 0 || pX >= this.width || pY >= this.height) return null;
     var x  = Math.floor(pX/this.islandSize),
         y  = Math.floor(pY/this.islandSize),
         id = x.toString() + ':' + y.toString();
@@ -168,13 +173,12 @@ World.prototype.testBodyByPoint = function(body, x, y)
  */
 World.prototype.getRandomPosition = function(radius, border)
 {
-    var margin = radius + border * this.size,
-        body   = new Body(this.getRandomPoint(margin), this.getRandomPoint(margin), margin);
+    var margin = radius + border * this.height,
+        body   = new Body(0, 0, margin);
 
-    while (!this.testBody(body)) {
-        body.x = this.getRandomPoint(margin);
-        body.y = this.getRandomPoint(margin);
-    }
+    do {
+        this.randomizePosition(body, margin);
+    } while (!this.testBody(body));
 
     return [body.x, body.y];
 };
@@ -191,7 +195,7 @@ World.prototype.getRandomPosition = function(radius, border)
 World.prototype.getRandomDirection = function(x, y, tolerance)
 {
     var direction = this.getRandomAngle(),
-        margin    = tolerance * this.size;
+        margin    = tolerance * this.height;
 
     while (!this.isDirectionValid(direction, x, y, margin)) {
         direction = this.getRandomAngle();
@@ -257,16 +261,10 @@ World.prototype.getRandomAngle = function()
     return Math.random() * Math.PI * 2;
 };
 
-/**
- * Get random point
- *
- * @param {Number} margin
- *
- * @return {Array}
- */
-World.prototype.getRandomPoint = function(margin)
+World.prototype.randomizePosition = function(body, margin)
 {
-    return margin + Math.random() * (this.size - margin * 2);
+    body.x = margin + Math.random() * (this.width - margin * 2);
+    body.y = margin + Math.random() * (this.height - margin * 2);
 };
 
 /**
@@ -283,16 +281,16 @@ World.prototype.getBoundIntersect = function(body, margin)
         return [0, body.y];
     }
 
-    if (body.x + margin > this.size) {
-        return [this.size, body.y];
+    if (body.x + margin > this.width) {
+        return [this.width, body.y];
     }
 
     if (body.y - margin < 0) {
         return [body.x, 0];
     }
 
-    if (body.y + margin > this.size) {
-        return [body.x, this.size];
+    if (body.y + margin > this.height) {
+        return [body.x, this.height];
     }
 
     return null;
@@ -309,18 +307,18 @@ World.prototype.getBoundIntersect = function(body, margin)
 World.prototype.getOposite = function(x, y)
 {
     if (x === 0) {
-        return [this.size, y];
+        return [this.width, y];
     }
 
-    if (x === this.size) {
+    if (x === this.width) {
         return [0, y];
     }
 
     if (y === 0) {
-        return [x, this.size];
+        return [x, this.height];
     }
 
-    if (y === this.size) {
+    if (y === this.height) {
         return [x, 0];
     }
 
@@ -339,11 +337,11 @@ World.prototype.getOposite = function(x, y)
 World.prototype.getDistanceToBorder = function(border, x, y)
 {
     if (border === 0) {
-        return this.size - x;
+        return this.width - x;
     }
 
     if (border === 1) {
-        return this.size - y;
+        return this.height - y;
     }
 
     if (border === 2) {

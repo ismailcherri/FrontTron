@@ -64,10 +64,35 @@ test(
     );
     await a.request('room:create', { name });
     for (const p of [a, b]) {
-      await p.request('room:join', { name });
+      const joined = await p.request('room:join', { name });
+      assert.equal(joined.room.config.arenaView, 'isometric');
+      assert.equal(joined.room.config.arenaShape, 'square');
       await p.request('player:add', { name: 'Rider ' + p.id });
       p.rider = (await p.wait('room:join', (d) => d.player.client === p.id)).player.id;
     }
+    const viewEvent = 'room:config:arena-view';
+    const shapeEvent = 'room:config:arena-shape';
+    assert.equal((await a.request(shapeEvent, { arenaShape: 'widescreen' })).success, false);
+    assert.equal((await b.request(viewEvent, { arenaView: 'top-down' })).success, false);
+    assert.equal((await a.request(viewEvent, { arenaView: 'unknown' })).success, false);
+    assert.equal((await a.request(viewEvent, { arenaView: 'top-down' })).success, true);
+    assert.deepEqual(await b.wait(viewEvent), { arenaView: 'top-down', arenaShape: 'widescreen' });
+    assert.equal((await b.request(shapeEvent, { arenaShape: 'widescreen' })).success, false);
+    assert.equal((await a.request(shapeEvent, { arenaShape: 'unknown' })).success, false);
+    assert.equal((await a.request(shapeEvent, { arenaShape: 'widescreen' })).success, true);
+    assert.equal((await b.wait(shapeEvent)).arenaShape, 'widescreen');
+    await a.request(viewEvent, { arenaView: 'isometric' });
+    assert.deepEqual(await b.wait(viewEvent), { arenaView: 'isometric', arenaShape: 'square' });
+    assert.equal((await a.request(shapeEvent, { arenaShape: 'widescreen' })).success, false);
+    await a.request(viewEvent, { arenaView: 'top-down' });
+    assert.equal((await b.wait(viewEvent)).arenaShape, 'widescreen');
+    await a.request(shapeEvent, { arenaShape: 'square' });
+    assert.equal((await b.wait(shapeEvent)).arenaShape, 'square');
+    await a.request(viewEvent, { arenaView: 'isometric' });
+    await a.request(viewEvent, { arenaView: 'top-down' });
+    assert.deepEqual(await b.wait(viewEvent, (d) => d.arenaView === 'top-down'),
+      { arenaView: 'top-down', arenaShape: 'square' });
+    await a.request(shapeEvent, { arenaShape: 'widescreen' });
     await a.request('room:config:max-score', { maxScore: 1 });
     await a.request('room:config:variable', { variable: 'bonusRate', value: 1 });
     await a.request('room:config:bonus', { bonus: 'BonusSelfExplode' });
@@ -77,7 +102,9 @@ test(
       await p.wait('room:game:start');
       p.send('ready');
     }
-    await a.wait('round:new');
+    assert.equal((await a.wait('round:new')).arenaShape, 'widescreen');
+    assert.equal((await a.request(shapeEvent, { arenaShape: 'square' })).success, false);
+    assert.equal((await a.request(viewEvent, { arenaView: 'isometric' })).success, false);
     await a.wait('game:start');
     await b.wait('game:start');
     assert.deepEqual(matchEvents(), ['game_started', 'round_started']);
@@ -97,9 +124,16 @@ test(
     await a.wait('position', (v) => v[0] === a.rider && v[1] === 3500);
     await a.wait('property', (v) => v[0] === a.rider && v[1] === 'printing' && v[2]);
     await a.wait('position', (v) => v[0] === a.rider && v[1] > 3500 && v[1] < 3650);
-    assert.equal((await spectator.request('room:join', { name })).room.game, true);
+    const watching = await spectator.request('room:join', { name });
+    assert.equal(watching.room.game, true);
+    assert.equal(watching.room.config.arenaView, 'top-down');
+    assert.equal(watching.room.config.arenaShape, 'widescreen');
     spectator.send('ready');
     const snap = await spectator.wait('spectate');
+    assert.equal(snap.arenaView, 'top-down');
+    assert.equal(snap.width, game.world.width);
+    assert.equal(snap.height, game.world.height);
+    assert.equal(snap.width, snap.height * 16 / 9);
     assert.equal(snap.spectators, 1);
     assert.equal(snap.phase, 'racing');
     assert.equal(snap.maxScore, 1);
@@ -121,6 +155,8 @@ test(
     await b.request('room:ready', { player: b.rider });
     await a.wait('room:game:start');
     assert.ok(room.game);
+    assert.equal(room.game.controller.view.arenaView, 'top-down');
+    assert.equal(room.game.controller.view.arenaShape, 'widescreen');
   },
 );
 

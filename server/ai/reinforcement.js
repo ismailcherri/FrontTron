@@ -1,6 +1,6 @@
 // An action-conditioned softmax policy. The same features feed training and serving.
 // Three possible continuations estimate whether each first steer leaves an escape.
-import { nearest, ray, rollout, turns } from './steering.js';
+import { edgeDistance, nearest, ray, rollout, turns } from './steering.js';
 
 export const policySchema = 'fronttron-reinforce-v1';
 export const featureNames = [
@@ -44,7 +44,7 @@ export function actionRows(obs) {
       const ahead = ray(obs, p.angle, reach, p.x, p.y, p.safe * horizon, p.serial);
       const left = ray(obs, p.angle - 0.75, reach, p.x, p.y, p.safe * horizon, p.serial);
       const right = ray(obs, p.angle + 0.75, reach, p.x, p.y, p.safe * horizon, p.serial);
-      const edge = Math.min(p.x, p.y, obs.size - p.x, obs.size - p.y);
+      const edge = edgeDistance(obs, p.x, p.y);
       const near = nearest(obs, p.x, p.y, obs.rivals).distance;
       const intercept = nearest(obs, p.x, p.y, projected).distance;
       const pickup = nearest(obs, p.x, p.y, obs.pickups).distance;

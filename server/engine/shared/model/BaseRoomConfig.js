@@ -17,6 +17,7 @@ import BonusSelfSlow from '../../server/model/Bonus/BonusSelfSlow.js';
 import BonusSelfSmall from '../../server/model/Bonus/BonusSelfSmall.js';
 import BonusSelfYscaler from '../../server/model/Bonus/BonusSelfYscaler.js';
 import EventEmitter from 'node:events';
+import { arenaShapeForView } from '../../../../public/catalog.js';
 
 /**
  * Base room configuration
@@ -26,6 +27,8 @@ export default function BaseRoomConfig(room)
     EventEmitter.call(this);
 
     this.room     = room;
+    this.arenaView = 'isometric';
+    this.topDownShape = 'widescreen';
     this.maxScore = null;
     this.open     = true;
     this.password = null;
@@ -58,6 +61,10 @@ export default function BaseRoomConfig(room)
 
 BaseRoomConfig.prototype = Object.create(EventEmitter.prototype);
 BaseRoomConfig.prototype.constructor = BaseRoomConfig;
+
+Object.defineProperty(BaseRoomConfig.prototype, 'arenaShape', {
+    get() { return arenaShapeForView(this.arenaView, this.topDownShape); }
+});
 
 /**
  * Password length
@@ -240,6 +247,8 @@ BaseRoomConfig.prototype.generatePassword = function()
 BaseRoomConfig.prototype.serialize = function()
 {
     return {
+        arenaView: this.arenaView,
+        arenaShape: this.arenaShape,
         maxScore: this.maxScore,
         variables: this.variables,
         bonuses: this.bonuses,

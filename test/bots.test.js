@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { TrailField } from '../server/ai/field.js';
-import { features, plan, rollout, observe } from '../server/ai/steering.js';
+import { features, nearest, plan, rollout, observe } from '../server/ai/steering.js';
 import { chooseMove } from '../server/ai/drivers.js';
 import {
   actionRows,
@@ -31,7 +31,8 @@ function scene() {
       bodyCount: 15,
       trailLatency: 3,
     },
-    size: 80,
+    width: 80,
+    height: 80,
     field: new TrailField(80),
     wrap: false,
     rivals: [],
@@ -70,6 +71,20 @@ test('all five policies produce legal steering, with trained held-out imitation 
   const { metrics } = JSON.parse(readFileSync(new URL('../server/ai/model.json', import.meta.url)));
   assert.ok(metrics.heldOutExamples > 100);
   assert.ok(metrics.agreement > metrics.majorityBaseline);
+});
+test('bots use both widescreen bounds for steering and wrapped targets', () => {
+  const s = scene();
+  s.height = 90;
+  s.width = 160;
+  s.field = new TrailField(s.width);
+  s.avatar.x = 105;
+  assert.equal(rollout(s, 0, 0).safe, 1);
+  for (const level of Object.keys(difficulties)) assert.equal(chooseMove(level, s), 0, level);
+  s.avatar.x = 157;
+  assert.ok(rollout(s, 0, 0).safe < 1);
+  s.wrap = true;
+  assert.ok(rollout(s, 0, 0).x < 20);
+  assert.deepEqual(nearest(s, 157, 87, [{ x: 2, y: 3 }]), { dx: 5, dy: 6, distance: Math.sqrt(61) });
 });
 test('the tactical planner takes contested space while the normal planner follows a clear lane', () => {
   const s = scene();

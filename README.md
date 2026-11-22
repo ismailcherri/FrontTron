@@ -1,6 +1,6 @@
 # FrontTron
 
-FrontTron is a real-time multiplayer curve-survival game for the browser. It runs the Langtron rules on a Node.js server and renders a raised isometric arena with Canvas 2D. The browser sends steering inputs. The server decides positions, collisions, pickups, scores, round outcomes, and room permissions.
+FrontTron is a real-time multiplayer curve-survival game for the browser. It runs the Langtron rules on a Node.js server and renders the arena with Canvas 2D. The browser sends steering inputs. The server decides positions, collisions, pickups, scores, round outcomes, and room permissions.
 
 ![FrontTron browser lobby](docs/lobby.jpg)
 
@@ -17,6 +17,8 @@ npm start
 Open **http://localhost:8080**. The server listens on all interfaces by default. Other players on the same network can open the server's LAN address on port 8080. All browser assets, including fonts, are bundled here.
 
 Select **Create room**. An empty room name generates one automatically. Edit the callsign, trail color, and steering from **Your pilot** or by selecting a rider's keys in the room. Add another local rider to share a keyboard, or use **Invite** to copy the room link. **Ready** starts the match as soon as everyone is ready, including in solo play. The host's **Start now** begins a cancellable five-second countdown.
+
+New rooms start in **Isometric** view, which always uses a square arena. In **Room settings → Arena view**, choose **Classic top-down** to play on a **Widescreen (16:9)** track. The host can also select **Square** under **Arena shape**. The room remembers its top-down shape when switching views, and riders and spectators share the settings through rematches.
 
 Hold Left or Right to steer and release to travel straight. Turn through gaps in the trails and collect pickups. The field guide explains the rules. Select **Use touch controls** for touch steering. For a gamepad, activate the controller, select a steering binding, then press a button or move an axis.
 

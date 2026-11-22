@@ -41,7 +41,7 @@ export class Drivers {
     this.clock = 0;
   }
   reset() {
-    if (this.riders.length) this.game.world.botField = new TrailField(this.game.size);
+    if (this.riders.length) this.game.world.botField = new TrailField(this.game.world.width);
     this.riders.forEach((a, i) => {
       a.nextDecision = this.clock + 20 * i;
       a.humanInput = 0;

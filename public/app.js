@@ -474,6 +474,8 @@ function beginMatch() {
     room.players,
     Math.round(Math.sqrt(6400 + (room.players.length - 1) * 1280)),
     room.config.maxScore || Math.max(1, (room.players.length - 1) * 10),
+    room.config.arenaView,
+    room.config.arenaShape,
   );
   render();
   net.signal('ready');
@@ -573,6 +575,11 @@ net.addEventListener('event', ({ detail: [event, d] }) => {
       return;
     case 'room:config:variable':
       r.config.variables[d.variable] = d.value;
+      refreshSettings();
+      return;
+    case 'room:config:arena-view':
+    case 'room:config:arena-shape':
+      Object.assign(r.config, d);
       refreshSettings();
       return;
     case 'room:config:bonus':
@@ -920,6 +927,14 @@ document.addEventListener('change', async (e) => {
   }
   if (!c || modal !== 'settings') return;
   if (el.id === 'access') await request('room:config:open', { open: el.value === 'open' });
+  if (el.id === 'arena-view') {
+    const result = await request('room:config:arena-view', { arenaView: el.value });
+    if (!result.success) refreshSettings();
+  }
+  if (el.id === 'arena-shape') {
+    const result = await request('room:config:arena-shape', { arenaShape: el.value });
+    if (!result.success) refreshSettings();
+  }
   if (el.id === 'score-setting')
     await request('room:config:max-score', { maxScore: el.value ? Number(el.value) : null });
   if (el.id === 'rate')

@@ -16,7 +16,7 @@ export default function Game(room)
 {
     BaseGame.call(this, room);
 
-    this.world        = new World(this.size);
+    this.world        = new World(this.getDimensions());
     this.deaths       = new Collection([], 'id');
     this.drivers      = new Drivers(this);
     this.controller   = new GameController(this);
@@ -234,7 +234,7 @@ Game.prototype.setSize = function()
     BaseGame.prototype.setSize.call(this);
 
     this.world.clear();
-    this.world = new World(this.size);
+    this.world = new World(this.getDimensions());
 
     this.bonusManager.setSize();
 };

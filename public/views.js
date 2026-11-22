@@ -1,6 +1,6 @@
 import { icon as i, esc as e } from './icons.js';
 import { difficulties } from './bots.js';
-import { bonuses, presets } from './catalog.js';
+import { arenaShapes, arenaViews, bonuses, presets } from './catalog.js';
 import { label } from './controls.js';
 
 const keycaps = (keys) => keys.map((k) => '<kbd>' + e(label(k)) + '</kbd>').join('');
@@ -267,6 +267,10 @@ export function chatLines(state) {
 export function settings(state) {
   const c = state.room.config,
     disabled = state.master === state.id ? '' : ' disabled';
+  const selectOptions = (options, selected) =>
+    Object.entries(options).map(([value, label]) =>
+      '<option value="' + value + '"' + (value === selected ? ' selected' : '') + '>' + label + '</option>'
+    ).join('');
   const active = Object.keys(c.bonuses).filter((k) => c.bonuses[k]);
   const current =
     Object.keys(presets).find(
@@ -285,6 +289,13 @@ export function settings(state) {
     (!c.open ? 'selected' : '') +
     '>Private</option></select></label></div>' +
     (!c.open ? '<p>Room code <b class="code">' + e(c.password) + '</b></p>' : '') +
+    '<div class="field-row"><label>Arena view<select id="arena-view">' +
+    selectOptions(arenaViews, c.arenaView) +
+    '</select></label>' +
+    (c.arenaView === 'top-down'
+      ? '<label>Arena shape<select id="arena-shape">' + selectOptions(arenaShapes, c.arenaShape) + '</select></label>'
+      : '') +
+    '</div>' +
     '<label>Bonus frequency<input type="range" min="-1" max="1" step=".1" id="rate" value="' +
     c.variables.bonusRate +
     '"></label><label>Bonus preset<select id="preset">' +
@@ -313,12 +324,16 @@ export function settings(state) {
   );
 }
 export function matchShell(room) {
+  const topDown = room.config.arenaView === 'top-down';
   return (
     '<div class="play-layout"><div class="play-viewport"><div class="crumb"><a href="#/">Lobby</a><b>/</b>' +
     e(room.name) +
     '</div><section class="play-panel panel"><div class="play-bar"><div class="eyebrow"><span class="slashes">///</span> ' +
     e(room.name) +
-    '</div><div id="round-tag"></div></div><div class="match-arena"><canvas id="arena" aria-label="Isometric game arena"></canvas><div id="banner"></div><div id="kills"></div></div><div class="play-bottom"><span id="metrics"></span><div>' +
+    '</div><div id="round-tag"></div></div><div class="match-arena' + (topDown ? ' top-down' : '') +
+    (topDown && room.config.arenaShape === 'widescreen' ? ' widescreen' : '') +
+    '"><canvas id="arena" aria-label="' + (topDown ? 'Top-down' : 'Isometric') +
+    ' game arena"></canvas><div id="banner"></div><div id="kills"></div></div><div class="play-bottom"><span id="metrics"></span><div>' +
     button('audio', '<span class="sr">Toggle effects</span>', 'sound', 'mini') +
     button('leave', 'Leave', 'exit', 'mini') +
     '</div></div><div id="touch-pads"></div></section></div><aside class="play-sidebar"><section class="panel"><div class="panel-heading"><div class="section-icon">' +

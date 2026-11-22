@@ -5,10 +5,12 @@ import Player from '../server/engine/server/model/Player.js';
 import AvatarBody from '../server/engine/server/core/AvatarBody.js';
 import { bonuses, presets } from '../public/catalog.js';
 import { makeMatch, applyMatchEvent } from '../public/match.js';
+import { settings } from '../public/views.js';
 
-function fixture(t, names = ['Amber', 'Teal']) {
+function fixture(t, names = ['Amber', 'Teal'], arenaView = 'isometric') {
   t.mock.timers.enable({ apis: ['setTimeout', 'setInterval'] });
   const room = new Room('Test circuit');
+  room.config.arenaView = arenaView;
   for (const [index, name] of names.entries()) {
     room.addPlayer(
       new Player({ id: index + 1, active: true }, name, ['#ffbb11', '#44eeee', '#fa72b7'][index]),
@@ -304,6 +306,67 @@ test('wall, own trail, opponent trail, and open-border travel', (t) => {
   game.update(0);
   assert.equal(self.alive, false);
 });
+test('the shape selector is top-down only and isometric matches use square bounds', (t) => {
+  const { room, game } = fixture(t);
+  const form = () => settings({ room: room.serialize(), master: 1, id: 1 });
+  assert.doesNotMatch(form(), /id="arena-shape"/);
+  assert.equal(game.world.width, game.world.height);
+  assert.equal(game.bonusManager.world.width, game.world.width);
+  assert.equal(game.controller.view.arenaShape, 'square');
+
+  const match = makeMatch([], 90, 1, 'isometric', 'widescreen');
+  assert.equal(match.arenaShape, 'square');
+  applyMatchEvent(match, 'round:new', { size: 80, arenaShape: 'widescreen', warmup: 3000 });
+  assert.equal(match.width, match.height);
+  assert.equal(match.arenaShape, 'square');
+
+  room.config.arenaView = 'top-down';
+  assert.match(form(), /id="arena-shape".*value="widescreen" selected/);
+});
+
+test('widescreen extends spawns, pickups, trail collisions and wall wrapping into the extra track', (t) => {
+  const ctx = fixture(t, ['Amber', 'Teal'], 'top-down');
+  const { game, self, enemy } = ctx;
+  const { width, height } = game.world;
+  assert.equal(height, game.size);
+  assert.equal(width, height * 16 / 9);
+  const random = t.mock.method(Math, 'random', () => 0.93);
+  for (const source of [game.world, game.bonusManager]) {
+    const [x, y] = source.getRandomPosition(3, 0.05);
+    assert.ok(x > height && x < width && y > 0 && y < height);
+  }
+  random.mock.restore();
+
+  self.setPosition(width - 5, height / 2);
+  game.update(0);
+  assert.equal(self.alive, true);
+  collect(ctx, 'BonusSelfFast');
+  assert.equal(self.velocity, 28);
+  const trail = new AvatarBody(self.x, self.y, enemy);
+  game.world.addBody(trail);
+  assert.equal(game.world.getBody(self.body), trail);
+
+  game.setBorderless(true);
+  for (const [x, y, targetX, targetY] of [
+    [-1, 30, width, 30], [width + 1, 30, 0, 30],
+    [width - 3, -1, width - 3, height], [width - 3, height + 1, width - 3, 0],
+  ]) {
+    self.setPosition(x, y);
+    game.update(0);
+    assert.deepEqual([self.x, self.y, self.alive], [targetX, targetY, true]);
+  }
+  game.setBorderless(false);
+  self.setPosition(width - self.radius / 2, 30);
+  game.update(0);
+  assert.equal(self.alive, false);
+
+  enemy.present = false;
+  game.setSize();
+  assert.ok(game.world.width < width);
+  assert.equal(game.world.width, game.world.height * 16 / 9);
+  assert.equal(game.bonusManager.world.width, game.world.width);
+});
+
 test('snapshot trails split on holes, color, width, wraps, and clears', () => {
   const m = makeMatch([{ id: 1, name: 'A', color: '#efae21' }], 80, 1);
   const event = (n, d) => applyMatchEvent(m, n, d);

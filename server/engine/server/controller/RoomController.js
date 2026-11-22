@@ -55,6 +55,12 @@ export default function RoomController(room)
         onActivity: function () { controller.onActivity(this); },
 
         onConfigOpen: function (data) { controller.onConfigOpen(this, data[0], data[1]); },
+        onConfigArenaView: function ([data, reply]) {
+            controller.onConfigArena(this, 'room:config:arena-view', {arenaView: data.arenaView}, reply);
+        },
+        onConfigArenaShape: function ([data, reply]) {
+            controller.onConfigArena(this, 'room:config:arena-shape', {arenaShape: data.arenaShape}, reply);
+        },
         onConfigMaxScore: function (data) { controller.onConfigMaxScore(this, data[0], data[1]); },
         onConfigVariable: function (data) { controller.onConfigVariable(this, data[0], data[1]); },
         onConfigBonus: function (data) { controller.onConfigBonus(this, data[0], data[1]); },
@@ -244,6 +250,8 @@ RoomController.prototype.setRoomMaster = function(client)
         this.roomMaster.on('close', this.removeRoomMaster);
         this.roomMaster.on('room:leave', this.removeRoomMaster);
         this.roomMaster.on('room:config:open', this.callbacks.onConfigOpen);
+        this.roomMaster.on('room:config:arena-view', this.callbacks.onConfigArenaView);
+        this.roomMaster.on('room:config:arena-shape', this.callbacks.onConfigArenaShape);
         this.roomMaster.on('room:config:max-score', this.callbacks.onConfigMaxScore);
         this.roomMaster.on('room:config:variable', this.callbacks.onConfigVariable);
         this.roomMaster.on('room:config:bonus', this.callbacks.onConfigBonus);
@@ -264,6 +272,8 @@ RoomController.prototype.removeRoomMaster = function()
         this.roomMaster.removeListener('close', this.removeRoomMaster);
         this.roomMaster.removeListener('room:leave', this.removeRoomMaster);
         this.roomMaster.removeListener('room:config:open', this.callbacks.onConfigOpen);
+        this.roomMaster.removeListener('room:config:arena-view', this.callbacks.onConfigArenaView);
+        this.roomMaster.removeListener('room:config:arena-shape', this.callbacks.onConfigArenaShape);
         this.roomMaster.removeListener('room:config:max-score', this.callbacks.onConfigMaxScore);
         this.roomMaster.removeListener('room:config:variable', this.callbacks.onConfigVariable);
         this.roomMaster.removeListener('room:config:bonus', this.callbacks.onConfigBonus);
@@ -659,6 +669,22 @@ RoomController.prototype.onConfigOpen = function(client, data, callback)
             password: this.room.config.password
         });
     }
+};
+
+RoomController.prototype.onConfigArena = function(client, event, setting, reply)
+{
+    if (!this.isRoomMaster(client)) return reply({success: false});
+
+    const config = this.room.config;
+    if (setting.arenaView) {
+        config.arenaView = setting.arenaView;
+    } else {
+        if (config.arenaView !== 'top-down') return reply({success: false});
+        config.topDownShape = setting.arenaShape;
+    }
+    const arena = {arenaView: config.arenaView, arenaShape: config.arenaShape};
+    reply({success: true, ...arena});
+    this.socketGroup.addEvent(event, arena);
 };
 
 /**

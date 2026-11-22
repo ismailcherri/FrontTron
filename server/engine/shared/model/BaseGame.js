@@ -1,6 +1,7 @@
 import BonusManager from '../../server/manager/BonusManager.js';
 import EventEmitter from 'node:events';
 import FPSLogger from '../../server/service/FPSLogger.js';
+import { arenaDimensions } from '../../../../public/catalog.js';
 
 /**
  * BaseGame
@@ -34,6 +35,11 @@ export default function BaseGame(room)
 
 BaseGame.prototype = Object.create(EventEmitter.prototype);
 BaseGame.prototype.constructor = BaseGame;
+
+BaseGame.prototype.getDimensions = function()
+{
+    return arenaDimensions(this.size, this.room.config.arenaShape);
+};
 
 /**
  * Loop frame rate
