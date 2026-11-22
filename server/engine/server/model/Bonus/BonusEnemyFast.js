@@ -14,6 +14,7 @@ export default function BonusEnemyFast(x, y)
 
 BonusEnemyFast.prototype = Object.create(BonusEnemy.prototype);
 BonusEnemyFast.prototype.constructor = BonusEnemyFast;
+BonusEnemyFast.prototype.maxStacks = 3;
 
 /**
  * Duration

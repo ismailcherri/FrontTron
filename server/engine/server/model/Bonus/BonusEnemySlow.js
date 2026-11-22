@@ -14,6 +14,7 @@ export default function BonusEnemySlow(x, y)
 
 BonusEnemySlow.prototype = Object.create(BonusEnemy.prototype);
 BonusEnemySlow.prototype.constructor = BonusEnemySlow;
+BonusEnemySlow.prototype.maxStacks = 2;
 
 /**
  * Get effects

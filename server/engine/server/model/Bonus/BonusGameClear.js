@@ -1,5 +1,6 @@
 import BaseBonus from '../../../shared/model/BaseBonus.js';
 import BonusGame from './BonusGame.js';
+import { CLEANAGEDDON_CAP } from '../../manager/BonusManager.js';
 
 /**
  * Master Bonus
@@ -14,13 +15,6 @@ export default function BonusGameClear(x, y)
 
 BonusGameClear.prototype = Object.create(BonusGame.prototype);
 BonusGameClear.prototype.constructor = BonusGameClear;
-
-/**
- * Duration
- *
- * @type {Number}
- */
-BonusGameClear.prototype.duration = 0;
 
 /**
  * Get probability
@@ -48,11 +42,11 @@ BonusGameClear.prototype.on = function()
     this.target.clearTrails();
 
     if (this.target.isCleanageddon()) {
-        this.target.soundCleanageddon();
-
-        let bonusManager = this.target.bonusManager;
-        bonusManager.isCleanageddon = true;
-        bonusManager.bonusPopingTime = 100;
-        bonusManager.bonusCap = 50;
+        BonusGame.prototype.on.call(this);
     }
+};
+
+BonusGameClear.prototype.getEffects = function()
+{
+    return [['rushCap', CLEANAGEDDON_CAP]];
 };

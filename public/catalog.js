@@ -8,7 +8,7 @@ export const bonuses = {
   BonusEnemyBig: 'Wide enemies',
   BonusAllColor: 'Color shuffle',
   BonusEnemyInverse: 'Reverse controls',
-  BonusSelfSmall: 'Narrow trail',
+  BonusSelfSmall: 'Shrink rider',
   BonusGameClear: 'Clear arena',
   BonusEnemyStraightAngle: 'Right angles',
   BonusSelfInvincible: 'Invincibility',

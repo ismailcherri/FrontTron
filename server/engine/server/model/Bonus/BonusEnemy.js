@@ -9,8 +9,6 @@ import Bonus from './Bonus.js';
 export default function BonusEnemy(x, y)
 {
     Bonus.call(this, x, y);
-
-    this.off = this.off.bind(this);
 }
 
 BonusEnemy.prototype = Object.create(Bonus.prototype);
@@ -43,15 +41,5 @@ BonusEnemy.prototype.on = function()
 {
     for (var i = this.target.length - 1; i >= 0; i--) {
         this.target[i].bonusStack.add(this);
-    }
-};
-
-/**
- * Apply on
- */
-BonusEnemy.prototype.off = function()
-{
-    for (var i = this.target.length - 1; i >= 0; i--) {
-        this.target[i].bonusStack.remove(this);
     }
 };

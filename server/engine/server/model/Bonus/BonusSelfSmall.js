@@ -1,4 +1,5 @@
 import BonusSelf from './BonusSelf.js';
+import { SIZE_STACK_LIMIT } from '../../../shared/model/BaseAvatar.js';
 
 /**
  * Small Bonus
@@ -13,6 +14,7 @@ export default function BonusSelfSmall(x, y)
 
 BonusSelfSmall.prototype = Object.create(BonusSelf.prototype);
 BonusSelfSmall.prototype.constructor = BonusSelfSmall;
+BonusSelfSmall.prototype.maxStacks = SIZE_STACK_LIMIT;
 
 /**
  * Duration

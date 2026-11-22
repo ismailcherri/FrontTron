@@ -37,8 +37,5 @@ BonusEnemyStraightAngle.prototype.probability = 0.6;
  */
 BonusEnemyStraightAngle.prototype.getEffects = function(avatar)
 {
-    return [
-        ['directionInLoop', false],
-        ['angularVelocityBase', Math.PI/2]
-    ];
+    return [['directionInLoop', false]];
 };

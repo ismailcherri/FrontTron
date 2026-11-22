@@ -13,6 +13,7 @@ export default function BonusAllDashed(x, y)
 
 BonusAllDashed.prototype = Object.create(BonusAll.prototype);
 BonusAllDashed.prototype.constructor = BonusAllDashed;
+BonusAllDashed.prototype.maxStacks = 3;
 
 /**
  * Duration

@@ -13,24 +13,13 @@ export default function GameBonusStack(game)
 GameBonusStack.prototype = Object.create(BaseBonusStack.prototype);
 GameBonusStack.prototype.constructor = GameBonusStack;
 
-/**
- * Add bonus to the stack
- *
- * @param {Bonus} bonus
- */
-GameBonusStack.prototype.add = function(bonus)
+GameBonusStack.prototype.append = function(properties, property, value)
 {
-    BaseBonusStack.prototype.add.call(this, bonus);
-};
-
-/**
- * Remove bonus from the stack
- *
- * @param {Bonus} bonus
- */
-GameBonusStack.prototype.remove = function(bonus)
-{
-    if (this.bonuses.items.includes(bonus)) BaseBonusStack.prototype.remove.call(this, bonus);
+    if (property === 'rushCap') {
+        properties.rushCap = Math.max(properties.rushCap, value);
+    } else {
+        BaseBonusStack.prototype.append.call(this, properties, property, value);
+    }
 };
 
 /**
@@ -42,6 +31,9 @@ GameBonusStack.prototype.remove = function(bonus)
 GameBonusStack.prototype.apply = function(property, value)
 {
     switch (property) {
+        case 'rushCap':
+            this.target.bonusManager.setRushCap(value);
+            break;
         case 'borderless':
             this.target.setBorderless(value ? true : false);
             break;

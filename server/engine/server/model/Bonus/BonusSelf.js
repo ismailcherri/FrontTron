@@ -9,8 +9,6 @@ import Bonus from './Bonus.js';
 export default function BonusSelf(x, y)
 {
     Bonus.call(this, x, y);
-
-    this.off = this.off.bind(this);
 }
 
 BonusSelf.prototype = Object.create(Bonus.prototype);
@@ -43,15 +41,5 @@ BonusSelf.prototype.on = function()
 {
     if (this.target) {
         this.target.bonusStack.add(this);
-    }
-};
-
-/**
- * Apply on
- */
-BonusSelf.prototype.off = function()
-{
-    if (this.target) {
-        this.target.bonusStack.remove(this);
     }
 };

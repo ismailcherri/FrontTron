@@ -170,14 +170,6 @@ Game.prototype.isCleanageddon = function()
 
 
 /**
- * Play cleanageddon sound
- */
-Game.prototype.soundCleanageddon = function()
-{
-    this.emit('cleanageddon', {game: this});
-};
-
-/**
  * Check if the round should end
  */
 Game.prototype.checkRoundEnd = function()
@@ -351,6 +343,7 @@ Game.prototype.abort = function()
 Game.prototype.end = function()
 {
     if (BaseGame.prototype.end.call(this)) {
+        this.bonusStack.clear();
         this.avatars.clear();
         this.world.clear();
 

@@ -3,6 +3,9 @@ import BaseBonusManager from '../../shared/manager/BaseBonusManager.js';
 import Body from '../core/Body.js';
 import World from '../core/World.js';
 
+export const PICKUP_RUSH_CAP = 10;
+export const CLEANAGEDDON_CAP = 50;
+
 /**
  * Bonus Manager
  *
@@ -24,6 +27,24 @@ export default function BonusManager(game, bonuses, rate)
 
 BonusManager.prototype = Object.create(BaseBonusManager.prototype);
 BonusManager.prototype.constructor = BonusManager;
+
+BonusManager.prototype.setRushCap = function(cap)
+{
+    const interval = cap ? 100 : this.originalBonusPopingTime;
+    if (this.bonusPopingTime !== interval) {
+        this.bonusPopingTime = interval;
+        if (this.popingTimeout) {
+            clearTimeout(this.popingTimeout);
+            this.popingTimeout = setTimeout(this.popBonus, this.getRandomPopingTime());
+        }
+    }
+    this.bonusCap = cap || BaseBonusManager.prototype.bonusCap;
+    const cleanageddon = cap === CLEANAGEDDON_CAP;
+    if (this.isCleanageddon !== cleanageddon) {
+        this.isCleanageddon = cleanageddon;
+        this.game.emit('cleanageddon', cleanageddon);
+    }
+};
 
 /**
  * Start
@@ -56,6 +77,7 @@ BonusManager.prototype.stop = function()
  */
 BonusManager.prototype.clear = function()
 {
+    this.setRushCap(0);
     this.world.clear();
     BaseBonusManager.prototype.clear.call(this);
 };

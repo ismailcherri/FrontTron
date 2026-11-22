@@ -1,5 +1,10 @@
 import Avatar from './Avatar.js';
+import { MAX_SIZE_LEVEL } from '../../shared/model/BaseAvatar.js';
 import BaseBonusStack from '../../shared/model/BaseBonusStack.js';
+
+// Each ceiling is the strength of three ordinary pickups affecting that stat.
+const MAX_SPEED_MULTIPLIER = 3.25;
+const MAX_HOLE_DISTANCE = 35;
 
 /**
  * Bonus Stack
@@ -21,7 +26,7 @@ BonusStack.prototype.constructor = BonusStack;
  */
 BonusStack.prototype.add = function(bonus)
 {
-    BaseBonusStack.prototype.add.call(this, bonus);
+    if (!BaseBonusStack.prototype.add.call(this, bonus)) return;
     this.emit('change', {avatar: this.target, method: 'add', bonus: bonus});
 };
 
@@ -32,8 +37,7 @@ BonusStack.prototype.add = function(bonus)
  */
 BonusStack.prototype.remove = function(bonus)
 {
-    if (!this.bonuses.items.includes(bonus)) return;
-    BaseBonusStack.prototype.remove.call(this, bonus);
+    if (!BaseBonusStack.prototype.remove.call(this, bonus)) return;
     this.emit('change', {avatar: this.target, method: 'remove', bonus: bonus});
 };
 
@@ -47,13 +51,24 @@ BonusStack.prototype.apply = function(property, value)
 {
     switch (property) {
         case 'radius':
-            this.target.setRadius(Avatar.prototype.radius * Math.pow(2, value));
+            this.target.setRadius(Avatar.prototype.radius * 2 ** Math.min(value, MAX_SIZE_LEVEL));
             break;
         case 'velocity':
-            this.target.setVelocity(value);
+            this.target.setVelocity(Math.min(value, Avatar.prototype.velocity * MAX_SPEED_MULTIPLIER));
             break;
         case 'inverse':
-            this.target.setInverse(value%2 !== 0);
+            this.target.setInverse(Boolean(value));
+            break;
+        case 'directionInLoop':
+            if (this.target.directionInLoop !== value) {
+                this.target.directionInLoop = value;
+                if (value) {
+                    this.target.updateBaseAngularVelocity();
+                } else {
+                    this.target.angularVelocityBase = Math.PI / 2;
+                    this.target.updateAngularVelocity();
+                }
+            }
             break;
         case 'invincible':
             this.target.setInvincible(value ? true : false);
@@ -65,7 +80,7 @@ BonusStack.prototype.apply = function(property, value)
             this.target.setColor(value);
             break;
         case 'dashed':
-            this.target.printManager.holeDistance = value;
+            this.target.printManager.holeDistance = Math.min(value, MAX_HOLE_DISTANCE);
             break;
         default:
             BaseBonusStack.prototype.apply.call(this, property, value);
@@ -107,7 +122,6 @@ BonusStack.prototype.append = function(properties, property, value)
 {
     switch (property) {
         case 'directionInLoop':
-        case 'angularVelocityBase':
         case 'color':
             properties[property] = value;
             break;

@@ -14,6 +14,7 @@ export default function BonusSelfSlow(x, y)
 
 BonusSelfSlow.prototype = Object.create(BonusSelf.prototype);
 BonusSelfSlow.prototype.constructor = BonusSelfSlow;
+BonusSelfSlow.prototype.maxStacks = 2;
 
 /**
  * Get effects

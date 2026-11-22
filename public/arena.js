@@ -226,7 +226,7 @@ function trails(c, list, v, preview) {
   c.restore();
 }
 function bikeScale(radius, demo) {
-  return demo ? 2.15 : Math.max(0.52, radius) * 1.2;
+  return demo ? 2.15 : radius * 1.2;
 }
 
 // Each bike is built from raised polygon faces in the same world as its trail.

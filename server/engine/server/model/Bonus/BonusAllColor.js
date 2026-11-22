@@ -40,7 +40,7 @@ BonusAllColor.prototype.getTarget = function(avatar, game)
 
     for (var i = targets.length - 1; i >= 0; i--) {
         this.avatars[i] = targets[i].id;
-        this.colors[i]  = targets[i].color;
+        this.colors[i]  = targets[i].player.color;
     }
 
     return targets;

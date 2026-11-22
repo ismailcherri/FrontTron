@@ -12,6 +12,7 @@ export default function BaseBonusStack (target)
 
     this.target  = target;
     this.bonuses = new Collection();
+    this.timers  = new Map();
 }
 
 BaseBonusStack.prototype = Object.create(EventEmitter.prototype);
@@ -24,9 +25,17 @@ BaseBonusStack.prototype.constructor = BaseBonusStack;
  */
 BaseBonusStack.prototype.add = function(bonus)
 {
-    if (this.bonuses.add(bonus)) {
+    if (!this.bonuses.add(bonus)) return false;
+
+    this.timers.set(bonus, setTimeout(() => this.remove(bonus), bonus.duration));
+    const copies = this.bonuses.items.filter(active => active.constructor === bonus.constructor);
+    if (copies.length > bonus.maxStacks) {
+        // The replacement is already active when the oldest copy is removed.
+        this.remove(copies[0]);
+    } else {
         this.resolve();
     }
+    return true;
 };
 
 /**
@@ -36,9 +45,12 @@ BaseBonusStack.prototype.add = function(bonus)
  */
 BaseBonusStack.prototype.remove = function(bonus)
 {
-    if (this.bonuses.remove(bonus)) {
-        this.resolve(bonus);
-    }
+    if (!this.timers.has(bonus)) return false;
+    clearTimeout(this.timers.get(bonus));
+    this.timers.delete(bonus);
+    this.bonuses.remove(bonus);
+    this.resolve(bonus);
+    return true;
 };
 
 /**
@@ -46,6 +58,8 @@ BaseBonusStack.prototype.remove = function(bonus)
  */
 BaseBonusStack.prototype.clear = function()
 {
+    for (const timer of this.timers.values()) clearTimeout(timer);
+    this.timers.clear();
     this.bonuses.clear();
 };
 

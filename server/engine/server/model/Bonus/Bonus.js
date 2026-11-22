@@ -13,11 +13,13 @@ export default function Bonus(x, y)
 
     this.body    = new Body(this.x, this.y, this.radius, this);
     this.target  = null;
-    this.timeout = null;
 }
 
 Bonus.prototype = Object.create(BaseBonus.prototype);
 Bonus.prototype.constructor = Bonus;
+
+// Fixed-strength pickups refresh one slot on each affected target.
+Bonus.prototype.maxStacks = 1;
 
 /**
  * Apply bonus callback
@@ -25,10 +27,5 @@ Bonus.prototype.constructor = Bonus;
 Bonus.prototype.applyTo = function(avatar, game)
 {
     this.target = this.getTarget(avatar, game);
-
-    if (this.duration) {
-        this.timeout = setTimeout(this.off, this.duration);
-    }
-
     this.on();
 };

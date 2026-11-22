@@ -1,5 +1,6 @@
 import BaseBonus from '../../../shared/model/BaseBonus.js';
 import BonusGame from './BonusGame.js';
+import { PICKUP_RUSH_CAP } from '../../manager/BonusManager.js';
 
 /**
  * Probability Bonus
@@ -14,13 +15,6 @@ export default function BonusGameProbability(x, y)
 
 BonusGameProbability.prototype = Object.create(BonusGame.prototype);
 BonusGameProbability.prototype.constructor = BonusGameProbability;
-
-/**
- * Duration
- *
- * @type {Number}
- */
-BonusGameProbability.prototype.duration = 0;
 
 /**
  * Get probability
@@ -40,26 +34,7 @@ BonusGameProbability.prototype.getProbability = function (game)
     return Math.round((BaseBonus.prototype.probability - ratio) * 10) / 10;
 };
 
-/**
- * Apply on
- */
-BonusGameProbability.prototype.on = function()
+BonusGameProbability.prototype.getEffects = function()
 {
-    let bonusManager = this.target.bonusManager;
-
-    if (bonusManager.isCleanageddon) {
-        return;
-    }
-
-    bonusManager.bonusPopingTime = 100;
-    bonusManager.bonusCap = 10;
-
-    setTimeout(function() {
-        if (bonusManager.isCleanageddon) {
-            return;
-        }
-
-        bonusManager.bonusPopingTime = bonusManager.originalBonusPopingTime;
-        bonusManager.bonusCap = 20;
-    }, 5000);
+    return [['rushCap', PICKUP_RUSH_CAP]];
 };

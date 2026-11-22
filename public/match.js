@@ -114,7 +114,10 @@ export function applyMatchEvent(match, name, data) {
       match.winner = data;
       break;
     case 'die':
-      if (racer) racer.alive = false;
+      if (racer) {
+        racer.alive = false;
+        racer.effects = {};
+      }
       break;
     case 'score':
       if (racer) racer.score = data[1];
@@ -136,7 +139,7 @@ export function applyMatchEvent(match, name, data) {
       for (const r of Object.values(match.racers)) r.stroke = -1;
       break;
     case 'cleanageddon':
-      match.cleanageddon = true;
+      match.cleanageddon = data !== false;
       break;
     case 'bonus:pop':
       match.pickups[data[0]] = { x: data[1] / 100, y: data[2] / 100, type: data[3] };

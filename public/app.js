@@ -646,7 +646,7 @@ net.addEventListener('event', ({ detail: [event, d] }) => {
   }
   if (event === 'bonus:pop') sound('bonus-pop');
   if (event === 'bonus:clear') sound('bonus-clear');
-  if (event === 'cleanageddon') sound('cleanageddon');
+  if (event === 'cleanageddon' && m.cleanageddon) sound('cleanageddon');
   if (event === 'round:end') {
     steering.reset();
     notice('Round complete');

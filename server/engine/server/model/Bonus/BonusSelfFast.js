@@ -14,6 +14,7 @@ export default function BonusSelfFast(x, y)
 
 BonusSelfFast.prototype = Object.create(BonusSelf.prototype);
 BonusSelfFast.prototype.constructor = BonusSelfFast;
+BonusSelfFast.prototype.maxStacks = 3;
 
 /**
  * Duration

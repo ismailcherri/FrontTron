@@ -2,6 +2,10 @@ import BonusStack from '../../server/model/BonusStack.js';
 import EventEmitter from 'node:events';
 import Trail from '../../server/model/Trail.js';
 
+export const MAX_SIZE_LEVEL = 3;
+// Six doublings take a rider from the minimum size to the maximum while opposing pickups overlap.
+export const SIZE_STACK_LIMIT = MAX_SIZE_LEVEL * 2;
+
 /**
  * Base Avatar
  *
@@ -242,7 +246,7 @@ BaseAvatar.prototype.updateBaseAngularVelocity = function()
  */
 BaseAvatar.prototype.setRadius = function(radius)
 {
-    this.radius = Math.max(radius, BaseAvatar.prototype.radius/8);
+    this.radius = Math.max(radius, BaseAvatar.prototype.radius / 2 ** MAX_SIZE_LEVEL);
 };
 
 /**

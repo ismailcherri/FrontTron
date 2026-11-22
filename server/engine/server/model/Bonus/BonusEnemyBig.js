@@ -1,4 +1,5 @@
 import BonusEnemy from './BonusEnemy.js';
+import { SIZE_STACK_LIMIT } from '../../../shared/model/BaseAvatar.js';
 
 /**
  * Big Enemy Bonus
@@ -13,6 +14,7 @@ export default function BonusEnemyBig(x, y)
 
 BonusEnemyBig.prototype = Object.create(BonusEnemy.prototype);
 BonusEnemyBig.prototype.constructor = BonusEnemyBig;
+BonusEnemyBig.prototype.maxStacks = SIZE_STACK_LIMIT;
 
 /**
  * Duration

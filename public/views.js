@@ -433,7 +433,7 @@ export function guide(keys) {
     {
       id: 'pickup',
       title: 'Collect pickups',
-      body: 'Ride over a pickup to activate it. Its color shows who it affects.',
+      body: 'Ride over a pickup to activate it. “Shrink rider” halves your size down to ⅛. “Wide enemies” doubles your rivals’ size up to 8×. At full strength, another pickup of the same kind keeps the effect active longer.',
       detail:
         '<ul class="guide-legend"><li><b>Green</b> You</li><li><b>Red</b> Opponents</li><li><b>White</b> Everyone</li></ul>',
     },
