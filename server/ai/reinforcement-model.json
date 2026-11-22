@@ -1,0 +1,76 @@
+{
+  "schema": "fronttron-reinforce-v1",
+  "features": [
+    "straight",
+    "escapeOptions",
+    "holdCourse",
+    "straighten",
+    "exitAhead",
+    "exitFan",
+    "wallSpace",
+    "pickupAccess",
+    "rivalDistance",
+    "rivalIntercept"
+  ],
+  "weights": [
+    0.08342476867360388,
+    0.996591476995012,
+    0.2568784289549543,
+    0.37118129736607886,
+    3.076561921871824,
+    2.6839580428384604,
+    -0.6118480383853706,
+    1.1363678442035707,
+    -1.6197482496253253,
+    0.49707887937742856
+  ],
+  "training": {
+    "algorithm": "REINFORCE",
+    "batches": 64,
+    "batchSize": 64,
+    "discount": 0.985,
+    "learningRate": 0.15,
+    "trainingSeed": 10000,
+    "curriculum": [
+      "hard",
+      "mimic",
+      "self",
+      "normal",
+      "self",
+      "hard",
+      "self",
+      "mimic"
+    ],
+    "selectedBatch": 64,
+    "validationSeed": 1000000,
+    "validationPairs": 64,
+    "initialValidation": {
+      "hard": {
+        "wins": 63,
+        "losses": 61,
+        "draws": 3,
+        "timeouts": 1
+      },
+      "mimic": {
+        "wins": 63,
+        "losses": 53,
+        "draws": 11,
+        "timeouts": 1
+      }
+    },
+    "selectedValidation": {
+      "hard": {
+        "wins": 64,
+        "losses": 56,
+        "draws": 7,
+        "timeouts": 1
+      },
+      "mimic": {
+        "wins": 73,
+        "losses": 47,
+        "draws": 7,
+        "timeouts": 1
+      }
+    }
+  }
+}

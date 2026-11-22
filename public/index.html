@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="theme-color" content="#101319" />
+    <meta
+      name="description"
+      content="FrontTron is a multiplayer curve-survival game. Steer your light cycle through an isometric arena with friends."
+    />
+    <title>FrontTron</title>
+    <link rel="icon" href="/art/mark.svg" />
+    <link rel="stylesheet" href="/style.css" />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href="/fonts/barlow-condensed-latin-800-italic.woff2"
+      crossorigin
+    />
+  </head>
+  <body>
+    <header class="top">
+      <div class="top-inner">
+        <a class="brand" href="#/" aria-label="FrontTron lobby"
+          ><img src="/art/mark.svg" alt="" />FRONT<span>TRON</span></a
+        >
+        <nav aria-label="Main navigation">
+          <a href="#/" id="nav-lobby"></a><button data-action="guide" id="nav-guide"></button>
+        </nav>
+        <div class="top-right">
+          <span id="status" role="status">Connecting</span
+          ><button class="profile-link" data-action="profile" id="nav-profile"></button>
+        </div>
+      </div>
+    </header>
+    <main id="main"></main>
+    <footer class="site-foot">
+      <span>FrontTron <b>/</b> Multiplayer curve survival</span
+      ><button data-action="credits">Credits</button>
+    </footer>
+    <dialog id="dialog"><div id="dialog-body"></div></dialog>
+    <div id="toast" role="status"></div>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

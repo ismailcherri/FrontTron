@@ -1,0 +1,23 @@
+{
+  "name": "fronttron",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Browser multiplayer curve survival on an isometric arena",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server/start.js",
+    "dev": "node --watch server/start.js",
+    "test": "node --test test/*.test.js",
+    "bots:train": "node tools/train-imitation.js",
+    "bots:evaluate": "node tools/evaluate-bots.js",
+    "bots:train:rl": "node tools/train-reinforcement.js",
+    "bots:evaluate:rl": "node tools/evaluate-reinforcement.js",
+    "bots:network": "node tools/measure-network.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
