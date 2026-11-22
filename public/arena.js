@@ -344,17 +344,6 @@ function pickup(c, p, v, rad) {
   if (sprite.complete && sprite.naturalWidth && i >= 0) {
     const sw = sprite.naturalWidth / 3,
       sh = sprite.naturalHeight / 6;
-    const centerY = y - rad * 0.8;
-    poly(
-      c,
-      [
-        [x, centerY - rad],
-        [x + rad, centerY],
-        [x, centerY + rad],
-        [x - rad, centerY],
-      ],
-      '#101820',
-    );
     c.drawImage(
       sprite,
       (i % 3) * sw,
