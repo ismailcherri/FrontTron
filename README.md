@@ -20,6 +20,8 @@ Select **Create room**. An empty room name generates one automatically. Edit the
 
 New rooms start in **Isometric** view, which always uses a square arena. In **Room settings → Arena view**, choose **Classic top-down** to play on a **Widescreen (16:9)** track. The host can also select **Square** under **Arena shape**. The room remembers its top-down shape when switching views, and riders and spectators share the settings through rematches.
 
+Choose **First person** to ride from the cockpit on a square track. The upper-right minimap shows the entire track, with an outlined arrow for your cycle, dots for other riders, and diamonds for pickups. Riders sharing a keyboard each get a cockpit while they’re racing. Spectators and eliminated riders follow a surviving cycle.
+
 Hold Left or Right to steer and release to travel straight. Turn through gaps in the trails and collect pickups. The field guide explains the rules. Select **Use touch controls** for touch steering. For a gamepad, activate the controller, select a steering binding, then press a button or move an axis.
 
 ## Computer riders

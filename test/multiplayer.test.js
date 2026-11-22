@@ -206,6 +206,7 @@ test(
     await guest.wait('room:master', (d) => d.client === guest.id);
     const room = service.repository.get(name);
     assert.equal(room.players.count(), 4);
+    assert.equal((await guest.request('room:config:arena-view', { arenaView: 'first-person' })).success, true);
     await guest.request('room:config:max-score', { maxScore: 1 });
     await guest.request('driving:record', true);
     await guest.request('room:ready', { player: guest.rider });
@@ -220,6 +221,8 @@ test(
     watcher.send('ready');
     assert.equal(watching.room.botCount, 3);
     const snap = await watcher.wait('spectate');
+    assert.equal(snap.arenaView, 'first-person');
+    assert.equal(snap.width, snap.height);
     assert.equal(snap.racers[mimic].difficulty, 'mimic');
     assert.equal(snap.racers[mimic].loaded, true);
     assert.equal(snap.racers[apex].difficulty, 'reinforcement');
@@ -238,6 +241,7 @@ test(
     await guest.wait('room:game:start');
     guest.send('ready');
     await guest.wait('round:new');
+    assert.equal(room.game.controller.view.arenaView, 'first-person');
     guest.send('room:leave');
     await watcher.wait('room:leave', (d) => d.player === guest.rider);
     assert.equal(room.game, undefined);

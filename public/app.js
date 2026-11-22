@@ -214,6 +214,7 @@ function render() {
         state.fps = fps;
         queueHud();
       },
+      state.id,
     );
     if (localPlayers().some((p) => p.keys.some((k) => k.startsWith('Touch')))) {
       $('#touch-pads').innerHTML =

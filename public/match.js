@@ -46,6 +46,15 @@ export function makeMatch(players, size, maxScore, arenaView = 'isometric', aren
   };
 }
 
+export function firstPersonRiders(racers, clientId) {
+  const positioned = racers.filter((r) => r.present && r.x !== null && r.y !== null);
+  const local = positioned.filter((r) => clientId != null && r.client === clientId);
+  const racing = local.filter((r) => r.alive);
+  if (racing.length) return racing;
+  const follow = positioned.find((r) => r.alive) ?? local[0] ?? positioned[0];
+  return follow ? [follow] : [];
+}
+
 function move(match, racer, x, y) {
   if (!racer) return;
   const wrapped = Math.abs(x - racer.x) > (match.width ?? match.size) / 2 ||

@@ -1,6 +1,7 @@
 export const arenaViews = {
   isometric: 'Isometric',
   'top-down': 'Classic top-down',
+  'first-person': 'First person',
 };
 export const arenaShapes = {
   square: 'Square',

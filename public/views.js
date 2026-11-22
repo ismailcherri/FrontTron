@@ -332,8 +332,9 @@ export function matchShell(room) {
     e(room.name) +
     '</div><div id="round-tag"></div></div><div class="match-arena' + (topDown ? ' top-down' : '') +
     (topDown && room.config.arenaShape === 'widescreen' ? ' widescreen' : '') +
-    '"><canvas id="arena" aria-label="' + (topDown ? 'Top-down' : 'Isometric') +
-    ' game arena"></canvas><div id="banner"></div><div id="kills"></div></div><div class="play-bottom"><span id="metrics"></span><div>' +
+    '"><canvas id="arena" aria-label="' + e(arenaViews[room.config.arenaView] || 'Isometric') +
+    ' game arena' + (room.config.arenaView === 'first-person' ? ' with corner minimap' : '') +
+    '"></canvas><div id="banner"></div><div id="kills"></div></div><div class="play-bottom"><span id="metrics"></span><div>' +
     button('audio', '<span class="sr">Toggle effects</span>', 'sound', 'mini') +
     button('leave', 'Leave', 'exit', 'mini') +
     '</div></div><div id="touch-pads"></div></section></div><aside class="play-sidebar"><section class="panel"><div class="panel-heading"><div class="section-icon">' +

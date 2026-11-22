@@ -4,7 +4,7 @@ import Room from '../server/engine/server/model/Room.js';
 import Player from '../server/engine/server/model/Player.js';
 import AvatarBody from '../server/engine/server/core/AvatarBody.js';
 import { bonuses, presets } from '../public/catalog.js';
-import { makeMatch, applyMatchEvent } from '../public/match.js';
+import { makeMatch, applyMatchEvent, firstPersonRiders } from '../public/match.js';
 import { settings } from '../public/views.js';
 
 function fixture(t, names = ['Amber', 'Teal'], arenaView = 'isometric') {
@@ -322,6 +322,31 @@ test('the shape selector is top-down only and isometric matches use square bound
 
   room.config.arenaView = 'top-down';
   assert.match(form(), /id="arena-shape".*value="widescreen" selected/);
+});
+
+test('first-person cameras track local riders and switch to a survivor after elimination', () => {
+  const match = makeMatch([
+    { id: 1, client: null, difficulty: 'hard' },
+    { id: 2, client: 8 }, { id: 3, client: 8 }, { id: 4, client: 9 },
+  ], 80, 1, 'first-person');
+  const cameras = (client) => firstPersonRiders(Object.values(match.racers), client).map((r) => r.id);
+  assert.deepEqual(cameras(8), []);
+  for (const id of [1, 2, 3, 4]) applyMatchEvent(match, 'position', [id, 1000, 2000]);
+  assert.deepEqual(cameras(8), [2, 3]);
+  assert.deepEqual(cameras(9), [4]);
+  assert.deepEqual(cameras(10), [1]);
+  applyMatchEvent(match, 'die', [2]);
+  assert.deepEqual(cameras(8), [3]);
+  applyMatchEvent(match, 'die', [3]);
+  assert.deepEqual(cameras(8), [1]);
+  applyMatchEvent(match, 'game:leave', 1);
+  assert.deepEqual(cameras(8), [4]);
+  applyMatchEvent(match, 'die', [4]);
+  assert.deepEqual(cameras(8), [2]);
+  applyMatchEvent(match, 'round:new', { size: 80, warmup: 3000 });
+  assert.deepEqual(cameras(8), []);
+  applyMatchEvent(match, 'position', [2, 3000, 4000]);
+  assert.deepEqual(cameras(8), [2]);
 });
 
 test('widescreen extends spawns, pickups, trail collisions and wall wrapping into the extra track', (t) => {

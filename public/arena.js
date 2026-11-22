@@ -1,10 +1,7 @@
-import { bonuses } from './catalog.js';
+import { bikeBody, line, path, pickupIcon, poly } from './arena-art.js';
+import { paintFirstPerson } from './first-person.js';
+export { pickupArtReady } from './arena-art.js';
 
-const sprite = new Image();
-sprite.src = '/art/bonus.png';
-export const pickupArtReady = sprite.decode().catch(() => {});
-const spriteNames = Object.keys(bonuses);
-const ink = '#101820';
 const A = 0.89,
   B = 0.42,
   C = -0.75,
@@ -12,26 +9,6 @@ const A = 0.89,
 const tau = Math.PI * 2;
 const lipRatio = 0.045;
 const baseDepthRatio = lipRatio * 1.4;
-function poly(c, points, color, stroke) {
-  c.beginPath();
-  points.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y)));
-  c.closePath();
-  c.fillStyle = color;
-  c.fill();
-  if (stroke) {
-    c.strokeStyle = stroke;
-    c.lineWidth = 0.18;
-    c.stroke();
-  }
-}
-function line(c, x, y, xx, yy, color, width) {
-  c.strokeStyle = color;
-  c.lineWidth = width;
-  c.beginPath();
-  c.moveTo(x, y);
-  c.lineTo(xx, yy);
-  c.stroke();
-}
 function matrix(c, v) {
   c.transform(v.a, v.b, v.c, v.d, v.x, v.y);
 }
@@ -181,11 +158,6 @@ function deck(c, v, width, height, borderless) {
   }
   c.restore();
 }
-function path(c, points) {
-  c.beginPath();
-  c.moveTo(points[0], points[1]);
-  for (let i = 2; i < points.length; i += 2) c.lineTo(points[i], points[i + 1]);
-}
 function trails(c, list, v, preview) {
   c.save();
   matrix(c, v);
@@ -242,94 +214,7 @@ function bikeScale(radius, demo) {
 function bike(c, r, v, demo) {
   if (!r.alive || r.x === null) return;
   const size = bikeScale(r.radius, demo);
-  const cos = Math.cos(r.angle),
-    sin = Math.sin(r.angle);
-  const toWorld = ([x, y, z]) => [
-    r.x + size * (x * cos - y * sin),
-    r.y + size * (x * sin + y * cos),
-    z * size,
-  ];
-  const part = (points, color) => face(c, v, points.map(toWorld), color);
-  const walls = (outline, z, h, base, top) => {
-    const roof = outline.map(([x, y]) => [x, y, z + h]);
-    if (v.topDown) return part(roof, top);
-    const sides = outline.map(([x, y], i) => {
-      const [u, w] = outline[(i + 1) % outline.length];
-      return [
-        [x, y, z],
-        [u, w, z],
-        [u, w, z + h],
-        [x, y, z + h],
-      ];
-    });
-    sides.sort((a, b) => {
-      const depth = (p) => {
-        const [x, y] = toWorld(p[0]);
-        return B * x + D * y;
-      };
-      return depth(a) - depth(b);
-    });
-    for (const s of sides) part(s, base);
-    part(roof, top);
-  };
-  const hull = [
-    [-2, -0.7],
-    [-1.3, -1],
-    [1.3, -0.84],
-    [2.1, -0.32],
-    [2.1, 0.32],
-    [1.3, 0.84],
-    [-1.3, 1],
-    [-2, 0.7],
-  ];
-  walls(hull, 0.05, 0.64, '#0b1018', '#515d66');
-  const stripe = [
-    [-1.9, -0.8],
-    [1.2, -0.76],
-    [1.8, -0.35],
-    [1.5, -0.2],
-    [-1.85, -0.47],
-  ];
-  part(
-    stripe.map(([x, y]) => [x, y, 0.76]),
-    r.color,
-  );
-  part(
-    stripe.map(([x, y]) => [x, -y, 0.76]),
-    r.color,
-  );
-  walls(
-    [
-      [-0.97, -0.5],
-      [0.42, -0.54],
-      [1, 0.02],
-      [0.34, 0.53],
-      [-0.97, 0.46],
-    ],
-    0.68,
-    0.46,
-    '#171e27',
-    '#bcc8d1',
-  );
-  part(
-    [
-      [-0.7, -0.39, 1.17],
-      [0.22, -0.38, 1.17],
-      [0.62, 0, 1.17],
-      [0.12, 0.35, 1.17],
-      [-0.71, 0.28, 1.17],
-    ],
-    '#354f60',
-  );
-  part(
-    [
-      [1.65, -0.36, 0.76],
-      [2.1, -0.18, 0.72],
-      [2.1, 0.18, 0.72],
-      [1.65, 0.36, 0.76],
-    ],
-    '#fffae2',
-  );
+  bikeBody(r, size, v.topDown, (x, y) => B * x + D * y, (points, color) => face(c, v, points, color));
   if (r.invincible) {
     c.save();
     matrix(c, v);
@@ -349,22 +234,7 @@ function pickup(c, p, v, rad) {
     c.ellipse(x, y, rad * 0.88, rad * 0.38, 0, 0, tau);
     c.fill();
   }
-  const i = spriteNames.indexOf(p.type);
-  if (sprite.complete && sprite.naturalWidth && i >= 0) {
-    const sw = sprite.naturalWidth / 3,
-      sh = sprite.naturalHeight / 6;
-    c.drawImage(
-      sprite,
-      (i % 3) * sw,
-      Math.floor(i / 3) * sh,
-      sw,
-      sh,
-      x - rad,
-      y - rad * (v.topDown ? 1 : 1.8),
-      rad * 2,
-      rad * 2,
-    );
-  }
+  pickupIcon(c, p.type, x - rad, y - rad * (v.topDown ? 1 : 1.8), rad * 2);
 }
 function demoPath(commands) {
   // Sample smooth curves into an arc-length path, so the attract-mode bikes have constant speed.
@@ -459,7 +329,7 @@ function demoScene(now) {
 }
 
 // The match, lobby preview, and field guide share the same camera and arena artwork.
-export function createArenaPainter(canvas, demo = false) {
+export function createArenaPainter(canvas, demo = false, clientId = null) {
   const ctx = canvas.getContext('2d');
   let cachedDeck, deckKey;
   return (scene, now) => {
@@ -467,14 +337,22 @@ export function createArenaPainter(canvas, demo = false) {
       h = canvas.clientHeight;
     if (!w || !h) return;
     const dpr = Math.min(devicePixelRatio || 1, 2);
+    const pixelsWide = Math.round(w * dpr), pixelsHigh = Math.round(h * dpr);
+    if (canvas.width !== pixelsWide || canvas.height !== pixelsHigh) {
+      canvas.width = pixelsWide;
+      canvas.height = pixelsHigh;
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (scene.arenaView === 'first-person') {
+      paintFirstPerson(ctx, scene, w, h, clientId);
+      return;
+    }
     const topDown = scene.arenaView === 'top-down';
     const width = scene.width ?? scene.size, height = scene.height ?? scene.size;
     const key = [w, h, dpr, width, height, scene.borderless, topDown].join(',');
     const v = camera(w, h, width, height, demo, topDown);
     if (key !== deckKey) {
       deckKey = key;
-      canvas.width = Math.round(w * dpr);
-      canvas.height = Math.round(h * dpr);
       cachedDeck = document.createElement('canvas');
       cachedDeck.width = canvas.width;
       cachedDeck.height = canvas.height;
@@ -482,7 +360,6 @@ export function createArenaPainter(canvas, demo = false) {
       dc.scale(dpr, dpr);
       deck(dc, v, width, height, scene.borderless);
     }
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
     ctx.drawImage(cachedDeck, 0, 0, w, h);
     trails(ctx, scene.trails, v, demo);
@@ -521,26 +398,8 @@ export function createArenaPainter(canvas, demo = false) {
         const [px, y] = project(v, r.x, r.y);
         const py = y - 2.4 * bikeScale(r.radius, false) * v.scale - step;
         effects.forEach((f, n) => {
-          const i = spriteNames.indexOf(f.type);
-          if (
-            i < 0 ||
-            !sprite.naturalWidth ||
-            (f.until - Date.now() < 1000 && Math.floor(now / 100) % 2)
-          )
-            return;
-          const sw = sprite.naturalWidth / 3,
-            sh = sprite.naturalHeight / 6;
-          ctx.drawImage(
-            sprite,
-            (i % 3) * sw,
-            Math.floor(i / 3) * sh,
-            sw,
-            sh,
-            px + (n - effects.length / 2) * step,
-            py,
-            step,
-            step,
-          );
+          if (f.until - Date.now() < 1000 && Math.floor(now / 100) % 2) return;
+          pickupIcon(ctx, f.type, px + (n - effects.length / 2) * step, py, step);
         });
       }
       if (r.diedAt && now - r.diedAt < 650) {
@@ -567,9 +426,9 @@ export function createArenaPainter(canvas, demo = false) {
   };
 }
 
-export function mountArena(canvas, getMatch, onFPS) {
+export function mountArena(canvas, getMatch, onFPS, clientId) {
   const demo = !getMatch;
-  const paint = createArenaPainter(canvas, demo);
+  const paint = createArenaPainter(canvas, demo, clientId);
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   let frame,
     frames = 0,
