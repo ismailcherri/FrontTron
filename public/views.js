@@ -314,18 +314,18 @@ export function settings(state) {
 }
 export function matchShell(room) {
   return (
-    '<div class="crumb"><a href="#/">Lobby</a><b>/</b>' +
+    '<div class="play-layout"><div class="play-viewport"><div class="crumb"><a href="#/">Lobby</a><b>/</b>' +
     e(room.name) +
-    '</div><div class="play-layout"><section class="play-panel panel"><div class="play-bar"><div class="eyebrow"><span class="slashes">///</span> ' +
+    '</div><section class="play-panel panel"><div class="play-bar"><div class="eyebrow"><span class="slashes">///</span> ' +
     e(room.name) +
     '</div><div id="round-tag"></div></div><div class="match-arena"><canvas id="arena" aria-label="Isometric game arena"></canvas><div id="banner"></div><div id="kills"></div></div><div class="play-bottom"><span id="metrics"></span><div>' +
     button('audio', '<span class="sr">Toggle effects</span>', 'sound', 'mini') +
     button('leave', 'Leave', 'exit', 'mini') +
-    '</div></div><div id="touch-pads"></div></section><section class="panel"><div class="panel-heading"><div class="section-icon">' +
+    '</div></div><div id="touch-pads"></div></section></div><aside class="play-sidebar"><section class="panel"><div class="panel-heading"><div class="section-icon">' +
     i('flag') +
     '</div><h2>Standings</h2></div><div id="scores"></div></section>' +
     chatShell() +
-    '</div>'
+    '</aside></div>'
   );
 }
 export function boardScores(m, id) {

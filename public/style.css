@@ -34,6 +34,7 @@
 }
 :root {
   color-scheme: dark;
+  --header-height: 73px;
   --bg: #101318;
   --panel: #171b21;
   --inner: #12161b;
@@ -135,6 +136,7 @@ small,
   overflow: hidden;
 }
 .top {
+  height: var(--header-height);
   background: #111419f5;
   border-bottom: 1px solid var(--border);
 }
@@ -145,7 +147,7 @@ main,
   margin: 0 auto;
 }
 .top-inner {
-  height: 72px;
+  height: 100%;
   display: flex;
   align-items: center;
   gap: 54px;
@@ -1194,17 +1196,39 @@ dialog.field-guide {
   transform: translate(-50%, 0);
 }
 .play-page {
-  width: min(1520px, calc(100% - 64px));
-  padding-top: 19px;
+  width: 100%;
+  padding-top: 0;
 }
 .play-layout {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: start;
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) clamp(230px, 21%, 360px);
+  grid-template-rows: auto minmax(0, 1fr);
+  column-gap: 12px;
 }
-.play-panel {
+.play-layout,
+.play-viewport {
+  max-height: calc(100dvh - var(--header-height));
+  padding: 19px 0 env(safe-area-inset-bottom);
+}
+.play-viewport {
+  display: contents;
+}
+.play-viewport .crumb {
   grid-column: 1 / -1;
+  padding-inline: 16px;
+}
+.play-panel,
+.play-sidebar {
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+}
+.play-sidebar {
+  gap: 12px;
+  overflow-y: auto;
+}
+.play-sidebar > .panel {
+  flex: none;
 }
 .play-bar,
 .play-bottom {
@@ -1231,8 +1255,9 @@ dialog.field-guide {
 .match-arena {
   position: relative;
   isolation: isolate;
+  width: 100%;
+  min-height: 0;
   aspect-ratio: 1.58;
-  max-height: max(280px, calc(100dvh - 190px));
   background: radial-gradient(ellipse at 50% 50%, #26333a, #151c23 65%);
   touch-action: none;
 }
@@ -1380,13 +1405,15 @@ dialog.field-guide {
   }
 }
 @media (max-width: 740px) {
+  :root {
+    --header-height: 59px;
+  }
   .top-inner,
   main,
   .site-foot {
     width: calc(100% - 30px);
   }
   .top-inner {
-    height: 58px;
     gap: 18px;
   }
   .brand {
@@ -1476,6 +1503,14 @@ dialog.field-guide {
     padding: 14px 16px;
   }
   .play-layout {
+    display: contents;
+  }
+  .play-viewport {
+    display: flex;
+    flex-direction: column;
+  }
+  .play-sidebar {
+    margin-top: 10px;
     gap: 10px;
   }
   .play-layout .chat #feed {
@@ -1486,9 +1521,6 @@ dialog.field-guide {
   }
   .site-foot {
     padding: 14px 0;
-  }
-  .play-page {
-    width: calc(100% - 20px);
   }
 }
 @media (max-width: 540px) {
@@ -1572,9 +1604,6 @@ dialog.field-guide {
   .empty {
     min-height: 100px;
   }
-  .play-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
   .play-layout .chat #feed {
     height: 120px;
   }
@@ -1605,6 +1634,19 @@ dialog.field-guide {
   }
   .top .brand {
     font-size: 1.48rem;
+  }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .play-layout,
+  .play-viewport {
+    padding-top: 6px;
+  }
+  .play-viewport .crumb {
+    display: none;
+  }
+  .play-bar,
+  .play-bottom {
+    padding-block: 4px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
