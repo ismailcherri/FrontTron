@@ -86,12 +86,21 @@ export function controls(players, send, canSteer, onActivity) {
     update();
   }
   window.addEventListener('blur', release);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) release();
+  });
   document.addEventListener('focusin', (e) => {
     if (e.target.matches('input,textarea,select')) release();
   });
+  document.addEventListener('contextmenu', (e) => {
+    if (e.target.closest?.('.play-panel')) e.preventDefault();
+  });
   document.addEventListener('pointerdown', (e) => {
     const target = e.target.closest?.('[data-touch], .match-arena');
-    if (!target || !canSteer()) return;
+    if (!target || e.button !== 0 || !canSteer()) return;
+    e.preventDefault();
+    if (document.activeElement?.matches('input, textarea, select, [contenteditable]'))
+      document.activeElement.blur();
     const box = target.getBoundingClientRect();
     const code =
       target.dataset.touch || (e.clientX < box.left + box.width / 2 ? 'TouchLeft' : 'TouchRight');
@@ -103,6 +112,7 @@ export function controls(players, send, canSteer, onActivity) {
   for (const type of ['pointerup', 'pointercancel', 'lostpointercapture'])
     document.addEventListener(type, (e) => {
       const code = fingers.get(e.pointerId);
+      if (!code) return;
       fingers.delete(e.pointerId);
       if (![...fingers.values()].includes(code)) held.delete(code);
       update();

@@ -1223,6 +1223,11 @@ dialog.field-guide {
   display: flex;
   flex-direction: column;
 }
+.play-panel {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
 .play-sidebar {
   gap: 12px;
   overflow-y: auto;
@@ -1373,7 +1378,6 @@ dialog.field-guide {
   background: #2b3239;
   color: var(--amber);
   touch-action: none;
-  user-select: none;
 }
 @media (min-width: 1500px) {
   .hero {

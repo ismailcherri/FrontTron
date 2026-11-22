@@ -38,9 +38,9 @@ test('independent local keyboard, touch and gamepad inputs turn and release', ()
     const ev = Object.assign(new Event(type), { code });
     windowEvents.dispatchEvent(ev);
   }
-  function pointer(type, pointerId, clientX) {
-    const ev = Object.assign(new Event(type), { pointerId, clientX });
-    docEvents.dispatchEvent(ev);
+  function pointer(type, pointerId, clientX, button = 0) {
+    const ev = Object.assign(new Event(type, { cancelable: true }), { pointerId, clientX, button });
+    return docEvents.dispatchEvent(ev);
   }
   try {
     key('keydown', 'ArrowLeft');
@@ -53,11 +53,12 @@ test('independent local keyboard, touch and gamepad inputs turn and release', ()
       [2, 0],
       [1, 0],
     ]);
-    docEvents.closest = () => ({
+    const surface = {
       dataset: {},
       getBoundingClientRect: () => ({ left: 0, width: 300 }),
       setPointerCapture() {},
-    });
+    };
+    docEvents.closest = () => surface;
     pointer('pointerdown', 1, 30);
     pointer('pointerdown', 2, 270);
     pointer('pointerup', 1, 30);
@@ -68,6 +69,25 @@ test('independent local keyboard, touch and gamepad inputs turn and release', ()
       [3, 1],
       [3, 0],
     ]);
+    // A long press on the left button stays active until the last finger releases.
+    surface.dataset.touch = 'TouchLeft';
+    assert.equal(pointer('pointerdown', 1, 270, 2), true);
+    assert.equal(pointer('pointerdown', 1, 270), false);
+    assert.equal(docEvents.dispatchEvent(new Event('contextmenu', { cancelable: true })), false);
+    pointer('pointerdown', 2, 270);
+    pointer('pointerup', 1, 320);
+    pointer('lostpointercapture', 1, 320);
+    assert.deepEqual(moves.splice(0), [[3, -1]]);
+    pointer('lostpointercapture', 2, 320);
+    assert.deepEqual(moves.splice(0), [[3, 0]]);
+    pointer('pointerdown', 3, 80);
+    docEvents.hidden = true;
+    docEvents.dispatchEvent(new Event('visibilitychange'));
+    pointer('pointerup', 3, 80);
+    assert.deepEqual(moves.splice(0), [[3, -1], [3, 0]]);
+    docEvents.hidden = false;
+    docEvents.closest = () => null;
+    assert.equal(docEvents.dispatchEvent(new Event('contextmenu', { cancelable: true })), true);
     pad.axes[0] = -0.8;
     nextFrame();
     pad.axes[0] = 0;
