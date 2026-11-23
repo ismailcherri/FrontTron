@@ -1,6 +1,6 @@
 import { icon as i, esc as e } from './icons.js';
 import { difficulties } from './bots.js';
-import { arenaShapes, arenaViews, bonuses, presets } from './catalog.js';
+import { arenaShapes, arenaViews, bonuses, platformCounts, presets } from './catalog.js';
 import { label } from './controls.js';
 
 const keycaps = (keys) => keys.map((k) => '<kbd>' + e(label(k)) + '</kbd>').join('');
@@ -292,10 +292,17 @@ export function settings(state) {
     '<div class="field-row"><label>Arena view<select id="arena-view">' +
     selectOptions(arenaViews, c.arenaView) +
     '</select></label>' +
+    (c.arenaView === 'isometric'
+      ? '<label>Platform levels<select id="arena-levels">' +
+        platformCounts.map(n => '<option value="' + n + '"' + (n === (c.isometricLevels ?? 1) ? ' selected' : '') +
+          '>' + n + '</option>').join('') + '</select></label>'
+      : '') +
     (c.arenaView === 'top-down'
       ? '<label>Arena shape<select id="arena-shape">' + selectOptions(arenaShapes, c.arenaShape) + '</select></label>'
       : '') +
     '</div>' +
+    (c.arenaView === 'isometric' && c.isometricLevels > 1
+      ? '<p>Ride onto a numbered lift to reach that level. Lifts change location during the race.</p>' : '') +
     '<label>Bonus frequency<input type="range" min="-1" max="1" step=".1" id="rate" value="' +
     c.variables.bonusRate +
     '"></label><label>Bonus preset<select id="preset">' +
@@ -325,6 +332,7 @@ export function settings(state) {
 }
 export function matchShell(room) {
   const topDown = room.config.arenaView === 'top-down';
+  const multipleLevels = room.config.arenaView === 'isometric' && room.config.isometricLevels > 1;
   return (
     '<div class="play-layout"><div class="play-viewport"><div class="crumb"><a href="#/">Lobby</a><b>/</b>' +
     e(room.name) +
@@ -332,8 +340,10 @@ export function matchShell(room) {
     e(room.name) +
     '</div><div id="round-tag"></div></div><div class="match-arena' + (topDown ? ' top-down' : '') +
     (topDown && room.config.arenaShape === 'widescreen' ? ' widescreen' : '') +
+    (multipleLevels ? ' multi-platform' : '') +
     '"><canvas id="arena" aria-label="' + e(arenaViews[room.config.arenaView] || 'Isometric') +
     ' game arena' + (room.config.arenaView === 'first-person' ? ' with corner minimap' : '') +
+    (multipleLevels ? ' with ' + room.config.isometricLevels + ' vertically stacked levels' : '') +
     '"></canvas><div id="banner"></div><div id="kills"></div></div><div class="play-bottom"><span id="metrics"></span><div>' +
     button('audio', '<span class="sr">Toggle effects</span>', 'sound', 'mini') +
     button('leave', 'Leave', 'exit', 'mini') +
@@ -366,6 +376,7 @@ export function boardScores(m, id) {
             ? 'You · '
             : '') +
         (r.present ? (r.alive ? 'Riding' : 'Out') : 'Left') +
+        (m.levelCount > 1 && r.alive ? ' · Level ' + (r.level + 1) : '') +
         '</small>' +
         Object.values(r.effects)
           .map(

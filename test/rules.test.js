@@ -4,13 +4,16 @@ import Room from '../server/engine/server/model/Room.js';
 import Player from '../server/engine/server/model/Player.js';
 import AvatarBody from '../server/engine/server/core/AvatarBody.js';
 import { bonuses, presets } from '../public/catalog.js';
-import { makeMatch, applyMatchEvent, firstPersonRiders } from '../public/match.js';
+import { makeMatch, applyMatchEvent, cameraRiders, platformViews } from '../public/match.js';
 import { settings } from '../public/views.js';
+import { TrailField } from '../server/ai/field.js';
+import { observe } from '../server/ai/steering.js';
 
-function fixture(t, names = ['Amber', 'Teal'], arenaView = 'isometric') {
+function fixture(t, names = ['Amber', 'Teal'], arenaView = 'isometric', levels = 1) {
   t.mock.timers.enable({ apis: ['setTimeout', 'setInterval'] });
   const room = new Room('Test circuit');
   room.config.arenaView = arenaView;
+  room.config.isometricLevels = levels;
   for (const [index, name] of names.entries()) {
     room.addPlayer(
       new Player({ id: index + 1, active: true }, name, ['#ffbb11', '#44eeee', '#fa72b7'][index]),
@@ -324,12 +327,138 @@ test('the shape selector is top-down only and isometric matches use square bound
   assert.match(form(), /id="arena-shape".*value="widescreen" selected/);
 });
 
+test('only multi-level isometric rooms open lifts, and both ends must be clear', t => {
+  for (const [arenaView, requested, count] of [
+    ['isometric', 1, 1], ['isometric', 2, 2], ['isometric', 3, 3],
+    ['top-down', 3, 1], ['first-person', 3, 1],
+  ]) {
+    const room = new Room('Lift layout');
+    Object.assign(room.config, {arenaView, isometricLevels: requested});
+    const form = settings({room: room.serialize(), master: 1, id: 1});
+    assert.equal(form.includes('id="arena-levels"'), arenaView === 'isometric');
+    room.addPlayer(new Player(null, 'Pilot', '#ff5555'));
+    const game = room.newGame();
+    t.after(() => clearTimeout(game.controller.waiting));
+    assert.equal(game.controller.view.levelCount, count);
+    if (count === 1) {
+      assert.equal(game.platforms, null);
+      continue;
+    }
+    game.world.activate();
+    const obstacle = new AvatarBody(15, 15, game.avatars.getFirst());
+    obstacle.level = 1;
+    game.world.addBody(obstacle);
+    const samples = [[15, 15], [25, 25], [45, 45], [55, 55], [65, 65]];
+    t.mock.method(game.world, 'randomizePosition', body => {
+      [body.x, body.y] = samples.shift();
+    });
+    game.platforms.reset();
+    const links = game.controller.view.links;
+    assert.deepEqual(links.map(p => p.x), count === 3 ? [25, 45] : [25]);
+    game.platforms.tick(16001);
+    assert.equal(game.controller.view.links.length, count - 1);
+    assert.notDeepEqual(game.controller.view.links, links);
+  }
+});
+
+test('a rider can climb and descend, with isolated trails, pickups and bot observations', t => {
+  const {room, game, self, enemy} = fixture(t, ['A', 'B'], 'isometric', 3);
+  const {view} = game.controller;
+  game.controller.attachAvatar(self);
+  game.world.botField = new TrailField(game.world.width);
+  game.started = game.inRound = true;
+  game.platforms.remaining = 16000;
+  game.platforms.links = [{lower: 0, x: 30, y: 25, radius: 3.5}, {lower: 1, x: 45, y: 25, radius: 3.5}];
+  self.setPosition(25, 25);
+  self.updateVelocities();
+  const blockedExit = new AvatarBody(26.6, 25, enemy);
+  blockedExit.level = 1;
+  game.world.addBody(blockedExit);
+  game.update(100);
+  assert.equal(self.body.level, 0);
+  assert.ok(self.alive);
+  game.world.removeBody(blockedExit);
+  self.setPosition(25, 25);
+  self.setPrinting(true);
+  game.update(100);
+  assert.equal(self.body.level, 1);
+  game.update(100);
+  assert.equal(self.body.level, 1);
+  assert.deepEqual(view.trails.map(trail => trail.level), [0, 1]);
+  assert.deepEqual(view.trails[0].points.slice(-2), view.trails[1].points.slice(0, 2));
+  assert.equal(self.velocity, 16);
+  assert.equal(self.angle, 0);
+
+  const lowerTrail = new AvatarBody(38, 25, enemy);
+  game.world.addBody(lowerTrail);
+  game.world.botField.add(lowerTrail);
+  self.setPosition(38, 25);
+  assert.equal(game.world.getBody(self.body), null);
+  const obs = observe(game, self);
+  assert.equal(obs.field.blocked(38, 25, self.radius, self, self.bodyCount), false);
+  assert.deepEqual(obs.rivals, []);
+  const pickup = new room.config.bonusTypes.BonusSelfFast(38, 25);
+  game.bonusManager.world.activate();
+  game.bonusManager.add(pickup, 2);
+  game.bonusManager.testCatch(self);
+  assert.equal(self.velocity, 16);
+  assert.equal(view.pickups[pickup.id].level, 2);
+  assert.deepEqual(observe(game, self).pickups, []);
+
+  self.setPrinting(false);
+  game.update(250);
+  assert.equal(self.body.level, 2);
+  self.setPosition(38, 25);
+  game.bonusManager.testCatch(self);
+  assert.equal(self.velocity, 28);
+  assert.equal(view.pickups[pickup.id], undefined);
+  self.setPosition(49, 26.5);
+  self.setAngle(Math.PI);
+  game.update(100);
+  assert.equal(self.body.level, 1);
+  self.setPosition(35, 27);
+  game.update(100);
+  assert.equal(self.body.level, 0);
+  self.setPosition(38, 25);
+  assert.equal(game.world.getBody(self.body), lowerTrail);
+
+  game.onRoundNew();
+  assert.equal(view.racers[self.id].level, 0);
+  assert.equal(self.body.level, 0);
+  assert.deepEqual(view.trails, []);
+  assert.equal(view.links.length, 2);
+});
+
+test('stacked platform cameras share a floor, split upon transfer and follow survivors', () => {
+  const match = makeMatch([
+    { id: 1, client: 90 }, { id: 2, client: 12 }, { id: 3, client: 12 },
+  ], 80, 10, 'isometric', 'square', 3);
+  const views = (client) => platformViews(Object.values(match.racers), client)
+    .map(({level, riders}) => [level, riders.map(r => r.id)]);
+  const transfer = (id, level) => applyMatchEvent(match, 'property', [id, 'level', level]);
+  assert.deepEqual(views(12), [[0, []]]);
+  for (const id of [1, 2, 3]) applyMatchEvent(match, 'position', [id, 2500, 2500]);
+  transfer(1, 2);
+  assert.deepEqual(views(12), [[0, [2, 3]]]);
+  assert.deepEqual(views(99), [[2, [1]]]);
+  transfer(2, 1);
+  assert.deepEqual(views(12), [[1, [2]], [0, [3]]]);
+  transfer(3, 1);
+  assert.deepEqual(views(12), [[1, [2, 3]]]);
+  applyMatchEvent(match, 'die', [2]);
+  assert.deepEqual(views(12), [[1, [3]]]);
+  applyMatchEvent(match, 'game:leave', 3);
+  assert.deepEqual(views(12), [[2, [1]]]);
+  applyMatchEvent(match, 'round:new', {size: 80, warmup: 3000});
+  assert.deepEqual(views(12), [[0, []]]);
+});
+
 test('first-person cameras track local riders and switch to a survivor after elimination', () => {
   const match = makeMatch([
     { id: 1, client: null, difficulty: 'hard' },
     { id: 2, client: 8 }, { id: 3, client: 8 }, { id: 4, client: 9 },
   ], 80, 1, 'first-person');
-  const cameras = (client) => firstPersonRiders(Object.values(match.racers), client).map((r) => r.id);
+  const cameras = (client) => cameraRiders(Object.values(match.racers), client).map((r) => r.id);
   assert.deepEqual(cameras(8), []);
   for (const id of [1, 2, 3, 4]) applyMatchEvent(match, 'position', [id, 1000, 2000]);
   assert.deepEqual(cameras(8), [2, 3]);

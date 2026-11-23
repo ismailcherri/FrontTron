@@ -223,4 +223,20 @@ Avatar.prototype.clear = function()
     this.printManager.stop();
     this.printManager.holeDistance = PrintManager.prototype.holeDistance;
     this.bodyCount = 0;
+    this.body.level = 0;
+    this.trail.clear();
+};
+
+// The final position on the old deck is also the start of the new stroke.
+Avatar.prototype.tryTransfer = function(level, world)
+{
+    const previous = this.body.level;
+    this.body.level = level;
+    if (!this.invincible && world.getBody(this.body)) {
+        this.body.level = previous;
+        return;
+    }
+    this.trail.clear();
+    this.emit('property', {avatar: this, property: 'level', value: level});
+    if (this.printing) this.addPoint(this.x, this.y);
 };

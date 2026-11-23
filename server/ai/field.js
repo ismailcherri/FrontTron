@@ -25,6 +25,7 @@ export class TrailField {
         const bucket = this.cells.get(j * this.width + i);
         if (!bucket) continue;
         for (const b of bucket) {
+          if ((b.level ?? 0) !== (avatar.body?.level ?? 0)) continue;
           if (b.data === avatar && num - b.num <= avatar.trailLatency) continue;
           if ((x - b.x) ** 2 + (y - b.y) ** 2 < (radius + b.radius) ** 2) return true;
         }

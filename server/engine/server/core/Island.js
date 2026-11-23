@@ -84,6 +84,7 @@ Island.prototype.getBody = function(body)
  */
 Island.prototype.bodiesTouch = function(bodyA, bodyB)
 {
+    if (bodyA.level !== bodyB.level) return false;
     var distance = this.getDistance(bodyA.x, bodyA.y, bodyB.x, bodyB.y),
         radius   = bodyA.radius + bodyB.radius,
         match    = bodyA.match(bodyB);

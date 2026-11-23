@@ -20,8 +20,9 @@ export function observe(game, avatar) {
     height: game.world.height,
     field: game.world.botField,
     wrap: game.borderless,
-    pickups: game.bonusManager.bonuses.items,
-    rivals: game.avatars.items.filter((other) => other !== avatar && other.alive && other.present),
+    pickups: game.bonusManager.bonuses.items.filter(p => p.body.level === avatar.body.level),
+    rivals: game.avatars.items.filter(other =>
+      other !== avatar && other.alive && other.present && other.body.level === avatar.body.level),
   };
 }
 function delta(distance, extent, wrap) {

@@ -1,7 +1,7 @@
-import { arenaDimensions, arenaShapeForView } from './catalog.js';
+import { arenaDimensions, arenaLevelCount, arenaShapeForView } from './catalog.js';
 
 // Display coordinates stay in world units until the canvas projects them.
-export function makeMatch(players, size, maxScore, arenaView = 'isometric', arenaShape = 'square') {
+export function makeMatch(players, size, maxScore, arenaView = 'isometric', arenaShape = 'square', levels = 1) {
   arenaShape = arenaShapeForView(arenaView, arenaShape);
   return {
     size,
@@ -9,6 +9,8 @@ export function makeMatch(players, size, maxScore, arenaView = 'isometric', aren
     arenaShape,
     maxScore,
     arenaView,
+    levelCount: arenaLevelCount(arenaView, levels),
+    links: [],
     phase: 'loading',
     round: 0,
     countdownEnd: 0,
@@ -30,6 +32,7 @@ export function makeMatch(players, size, maxScore, arenaView = 'isometric', aren
           color: p.color,
           x: null,
           y: null,
+          level: 0,
           angle: 0,
           radius: 0.6,
           printing: false,
@@ -46,13 +49,25 @@ export function makeMatch(players, size, maxScore, arenaView = 'isometric', aren
   };
 }
 
-export function firstPersonRiders(racers, clientId) {
+export function cameraRiders(racers, clientId) {
   const positioned = racers.filter((r) => r.present && r.x !== null && r.y !== null);
   const local = positioned.filter((r) => clientId != null && r.client === clientId);
   const racing = local.filter((r) => r.alive);
   if (racing.length) return racing;
   const follow = positioned.find((r) => r.alive) ?? local[0] ?? positioned[0];
   return follow ? [follow] : [];
+}
+
+export { cameraRiders as firstPersonRiders };
+
+export function platformViews(racers, clientId) {
+  const floors = new Map();
+  for (const rider of cameraRiders(racers, clientId)) {
+    const level = rider.level ?? 0;
+    if (!floors.has(level)) floors.set(level, {level, riders: []});
+    floors.get(level).riders.push(rider);
+  }
+  return floors.size ? [...floors.values()] : [{level: 0, riders: []}];
 }
 
 function move(match, racer, x, y) {
@@ -65,6 +80,7 @@ function move(match, racer, x, y) {
         match.trails.push({
           color: racer.color,
           radius: racer.radius,
+          level: racer.level,
           points: [racer.x, racer.y],
         }) - 1;
     }
@@ -89,11 +105,13 @@ export function applyMatchEvent(match, name, data) {
       match.winner = null;
       match.borderless = match.cleanageddon = false;
       match.trails = [];
+      match.links = [];
       match.pickups = {};
       for (const r of Object.values(match.racers))
         Object.assign(r, {
           x: null,
           y: null,
+          level: 0,
           color: r.baseColor,
           radius: 0.6,
           alive: r.present,
@@ -113,9 +131,12 @@ export function applyMatchEvent(match, name, data) {
       break;
     case 'property':
       if (racer) {
-        if (['printing', 'color', 'radius'].includes(data[1])) racer.stroke = -1;
+        if (['printing', 'color', 'radius', 'level'].includes(data[1])) racer.stroke = -1;
         racer[data[1]] = data[2];
       }
+      break;
+    case 'platform:links':
+      match.links = data;
       break;
     case 'game:start':
       match.phase = 'racing';
@@ -160,7 +181,7 @@ export function applyMatchEvent(match, name, data) {
       match.cleanageddon = data !== false;
       break;
     case 'bonus:pop':
-      match.pickups[data[0]] = { x: data[1] / 100, y: data[2] / 100, type: data[3] };
+      match.pickups[data[0]] = { x: data[1] / 100, y: data[2] / 100, type: data[3], level: data[4] ?? 0 };
       break;
     case 'bonus:clear':
       delete match.pickups[data];

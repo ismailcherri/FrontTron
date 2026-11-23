@@ -22,6 +22,10 @@ New rooms start in **Isometric** view, which always uses a square arena. In **Ro
 
 Choose **First person** to ride from the cockpit on a square track. The upper-right minimap shows the entire track, with an outlined arrow for your cycle, dots for other riders, and diamonds for pickups. Riders sharing a keyboard each get a cockpit while they’re racing. Spectators and eliminated riders follow a surviving cycle.
 
+In an isometric room, the host can choose **1, 2, or 3** under **Room settings → Platform levels**. The platforms stack vertically. Your current floor is solid, floors above appear as translucent outlines, and floors below are hidden. Riders sharing a keyboard share the view until they move to different floors, then each occupied floor gets its own view. Spectators follow a surviving rider.
+
+Everyone starts on level 1. Ride onto a numbered lift to travel to the indicated level, keeping your speed and heading. Lifts link neighboring levels and move to random locations during the round. Each level has its own trails and pickups.
+
 Hold Left or Right to steer and release to travel straight. Turn through gaps in the trails and collect pickups. The field guide explains the rules. Select **Use touch controls** for touch steering. For a gamepad, activate the controller, select a steering binding, then press a button or move an axis.
 
 ## Computer riders

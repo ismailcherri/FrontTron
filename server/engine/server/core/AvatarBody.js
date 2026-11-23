@@ -11,6 +11,7 @@ export default function AvatarBody(x, y, avatar)
 {
     Body.call(this, x, y, avatar.radius, avatar);
 
+    this.level = avatar.body?.level ?? 0;
     this.num   = avatar.bodyCount++;
     this.birth = new Date().getTime();
 }

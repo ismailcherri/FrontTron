@@ -477,6 +477,7 @@ function beginMatch() {
     room.config.maxScore || Math.max(1, (room.players.length - 1) * 10),
     room.config.arenaView,
     room.config.arenaShape,
+    room.config.isometricLevels,
   );
   render();
   net.signal('ready');
@@ -580,6 +581,7 @@ net.addEventListener('event', ({ detail: [event, d] }) => {
       return;
     case 'room:config:arena-view':
     case 'room:config:arena-shape':
+    case 'room:config:arena-levels':
       Object.assign(r.config, d);
       refreshSettings();
       return;
@@ -629,7 +631,7 @@ net.addEventListener('event', ({ detail: [event, d] }) => {
   const m = state.match;
   if (!m) return;
   applyMatchEvent(m, event, d);
-  if (['position', 'angle', 'point', 'property'].includes(event)) return;
+  if (['position', 'angle', 'point'].includes(event) || (event === 'property' && d[1] !== 'level')) return;
   if (event === 'round:new') {
     state.kills = [];
     steering.reset();
@@ -934,6 +936,10 @@ document.addEventListener('change', async (e) => {
   }
   if (el.id === 'arena-shape') {
     const result = await request('room:config:arena-shape', { arenaShape: el.value });
+    if (!result.success) refreshSettings();
+  }
+  if (el.id === 'arena-levels') {
+    const result = await request('room:config:arena-levels', { isometricLevels: Number(el.value) });
     if (!result.success) refreshSettings();
   }
   if (el.id === 'score-setting')

@@ -4,6 +4,23 @@ const sprite = new Image();
 sprite.src = '/art/bonus.png';
 export const pickupArtReady = sprite.decode().catch(() => {});
 const spriteNames = Object.keys(bonuses);
+// Size and clip each local camera independently, including an incomplete final row.
+export function paintViewports(c, views, w, h, paint) {
+  const cols = Math.min(views.length, Math.max(1, Math.round(Math.sqrt(views.length * w / h / 1.5))));
+  const rows = Math.ceil(views.length / cols);
+  views.forEach((view, index) => {
+    const row = Math.floor(index / cols), rowCount = Math.min(cols, views.length - row * cols);
+    const cellW = w / rowCount, cellH = h / rows;
+    const vw = cellW - (rowCount > 1 ? 2 : 0), vh = cellH - (rows > 1 ? 2 : 0);
+    c.save();
+    c.translate(cellW * (index % cols), cellH * row);
+    c.beginPath();
+    c.rect(0, 0, vw, vh);
+    c.clip();
+    paint(view, vw, vh, index);
+    c.restore();
+  });
+}
 export function poly(c, points, color, stroke) {
   c.beginPath();
   points.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y)));

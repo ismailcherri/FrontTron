@@ -1,5 +1,5 @@
-import { bikeBody, line, pickupIcon, poly } from './arena-art.js';
-import { firstPersonRiders } from './match.js';
+import { bikeBody, line, paintViewports, pickupIcon, poly } from './arena-art.js';
+import { cameraRiders } from './match.js';
 
 const tau = Math.PI * 2;
 const near = 0.24;
@@ -332,21 +332,11 @@ function minimap(c, scene, rider, racers, pickups, w, h, caption) {
 
 export function paintFirstPerson(c, scene, w, h, clientId) {
   const racers = Object.values(scene.racers), pickups = Object.values(scene.pickups);
-  const riders = firstPersonRiders(racers, clientId);
+  const riders = cameraRiders(racers, clientId);
   c.fillStyle = '#121c25';
   c.fillRect(0, 0, w, h);
   if (!riders.length) return;
-  const cols = Math.min(riders.length, Math.max(1, Math.round(Math.sqrt(riders.length * w / h / 1.5))));
-  const rows = Math.ceil(riders.length / cols);
-  riders.forEach((rider, idx) => {
-    const row = Math.floor(idx / cols), rowCount = Math.min(cols, riders.length - row * cols);
-    const cellW = w / rowCount, cellH = h / rows;
-    const vw = cellW - (rowCount > 1 ? 2 : 0), vh = cellH - (rows > 1 ? 2 : 0);
-    c.save();
-    c.translate(cellW * (idx % cols), cellH * row);
-    c.beginPath();
-    c.rect(0, 0, vw, vh);
-    c.clip();
+  paintViewports(c, riders, w, h, (rider, vw, vh) => {
     const v = camera(rider, vw, vh);
     landscape(c, v, rider.angle, vw, vh);
     track(c, v, scene);
@@ -354,6 +344,5 @@ export function paintFirstPerson(c, scene, w, h, clientId) {
     cockpit(c, rider, vw, vh);
     const caption = rider.client !== clientId ? 'Following ' + rider.name : (riders.length > 1 ? rider.name : '');
     minimap(c, scene, rider, racers, pickups, vw, vh, caption);
-    c.restore();
   });
 }

@@ -1275,6 +1275,11 @@ dialog.field-guide {
 .match-arena.top-down.widescreen {
   aspect-ratio: 16 / 9;
 }
+@media (max-width: 600px) and (orientation: portrait) {
+  .match-arena.multi-platform {
+    aspect-ratio: 1.2;
+  }
+}
 .match-arena canvas {
   position: absolute;
   width: 100%;

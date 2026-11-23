@@ -1,10 +1,12 @@
 import { Drivers } from '../../../ai/drivers.js';
+import { arenaLevelCount } from '../../../../public/catalog.js';
 import Avatar from './Avatar.js';
 import AvatarBody from '../core/AvatarBody.js';
 import BaseGame from '../../shared/model/BaseGame.js';
 import Collection from '../../shared/Collection.js';
 import GameBonusStack from './GameBonusStack.js';
 import GameController from '../controller/GameController.js';
+import PlatformLinks from './PlatformLinks.js';
 import World from '../core/World.js';
 
 /**
@@ -17,6 +19,8 @@ export default function Game(room)
     BaseGame.call(this, room);
 
     this.world        = new World(this.getDimensions());
+    this.levelCount   = arenaLevelCount(room.config.arenaView, room.config.isometricLevels);
+    this.platforms    = this.levelCount > 1 ? new PlatformLinks(this) : null;
     this.deaths       = new Collection([], 'id');
     this.drivers      = new Drivers(this);
     this.controller   = new GameController(this);
@@ -51,11 +55,13 @@ Game.prototype.update = function(step)
 
     this.deathInFrame = false;
     this.drivers?.tick(step);
+    if (this.inRound) this.platforms?.tick(step);
 
     for (i = this.avatars.items.length - 1; i >= 0; i--) {
         avatar = this.avatars.items[i];
 
         if (avatar.alive) {
+            const fromX = avatar.x, fromY = avatar.y;
             avatar.update(step);
 
             border = this.world.getBoundIntersect(avatar.body, this.borderless ? 0 : avatar.radius);
@@ -78,6 +84,7 @@ Game.prototype.update = function(step)
             }
 
             if (avatar.alive) {
+                if (this.inRound && !border) this.platforms?.cross(avatar, fromX, fromY);
                 avatar.printManager.test();
                 this.bonusManager.testCatch(avatar);
             }
@@ -274,6 +281,7 @@ Game.prototype.onRoundNew = function()
             this.deaths.add(avatar);
         }
     }
+    this.platforms?.reset();
 };
 
 /**

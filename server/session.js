@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { difficulties } from '../public/bots.js';
-import { arenaShapes, arenaViews } from '../public/catalog.js';
+import { arenaShapes, arenaViews, platformCounts } from '../public/catalog.js';
 import Collection from './engine/shared/Collection.js';
 
 const integer = Number.isSafeInteger;
@@ -29,6 +29,7 @@ const rpc = new Map(
       typeof data?.arenaView === 'string' && Object.hasOwn(arenaViews, data.arenaView),
     'room:config:arena-shape': (data) =>
       typeof data?.arenaShape === 'string' && Object.hasOwn(arenaShapes, data.arenaShape),
+    'room:config:arena-levels': (data) => platformCounts.includes(data?.isometricLevels),
     'room:config:max-score': (data) =>
       data && (data.maxScore === null || (integer(data.maxScore) && data.maxScore > 0)),
     'room:config:variable': (data) =>

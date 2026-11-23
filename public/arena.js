@@ -1,5 +1,6 @@
-import { bikeBody, line, path, pickupIcon, poly } from './arena-art.js';
+import { bikeBody, line, paintViewports, path, pickupIcon, poly } from './arena-art.js';
 import { paintFirstPerson } from './first-person.js';
+import { platformViews } from './match.js';
 export { pickupArtReady } from './arena-art.js';
 
 const A = 0.89,
@@ -15,7 +16,7 @@ function matrix(c, v) {
 function project(v, x, y, z = 0) {
   return [v.x + v.a * x + v.c * y, v.y + v.b * x + v.d * y - v.lift * z];
 }
-function camera(w, h, arenaWidth, arenaHeight, demo, topDown) {
+function camera(w, h, arenaWidth, arenaHeight, demo, topDown, stackHeight) {
   const pad = demo ? 0 : Math.max(6, Math.min(w, h) * 0.012);
   if (topDown) {
     const scale = Math.min(Math.max(1, w - 2 * pad) / arenaWidth, Math.max(1, h - 2 * pad) / arenaHeight);
@@ -26,7 +27,7 @@ function camera(w, h, arenaWidth, arenaHeight, demo, topDown) {
   }
   // Frame the full deck, including its base and the raised pickups at the back edge.
   const width = demo ? arenaWidth * 1.82 : A * arenaWidth - C * arenaHeight + 4;
-  const headroom = 5.4;
+  const headroom = 5.4 + stackHeight;
   const floorHeight = B * arenaWidth + D * arenaHeight;
   const height = demo ? arenaHeight * 1.13 : floorHeight + arenaHeight * baseDepthRatio + headroom;
   const scale = Math.min((w - 2 * pad) / width, (h - 2 * pad) / height);
@@ -39,6 +40,94 @@ function camera(w, h, arenaWidth, arenaHeight, demo, topDown) {
       ? (h - floorHeight * scale) / 2 - 2 * scale
       : (h - height * scale) / 2 + headroom * scale,
   };
+}
+// Upper floors share the active floor's footprint. Only their translucent edges
+// and surfaces are visible, so they cannot obscure hazards on the riding surface.
+function overheadDeck(c, v, width, height, elevation, distance) {
+  c.save();
+  c.translate(0, -elevation);
+  matrix(c, v);
+  c.fillStyle = distance === 1 ? '#a6d6ea09' : '#a6d6ea05';
+  c.fillRect(0, 0, width, height);
+  c.lineWidth = Math.max(1 / v.scale, 0.22);
+  c.strokeStyle = distance === 1 ? '#a6d6ea55' : '#a6d6ea33';
+  c.strokeRect(0, 0, width, height);
+  c.restore();
+}
+
+function floorCaption(c, focus, count, split, clientId, w) {
+  const {level, riders} = focus;
+  const followed = riders[0];
+  const caption = followed && (clientId == null || followed.client !== clientId) ? 'Following ' + followed.name :
+    split ? riders.map(r => r.name).join(' · ') : '';
+  c.save();
+  c.textAlign = 'left';
+  c.textBaseline = 'top';
+  c.fillStyle = '#ffc968';
+  c.font = '700 15px "Barlow Condensed", sans-serif';
+  c.fillText('LEVEL ' + (level + 1) + ' / ' + count, 12, 10);
+  if (caption) {
+    c.fillStyle = '#d4dfe4';
+    c.font = '600 12px Barlow, sans-serif';
+    c.fillText(caption, 12, 28, Math.max(1, w - 24));
+  }
+  c.restore();
+}
+
+const liftColors = ['#66efdb', '#c7a1ff'];
+// A shaft and a translucent landing ring mark the lift directly overhead.
+function liftShaft(c, v, link, rise) {
+  const [x, y] = project(v, link.x, link.y);
+  c.save();
+  c.strokeStyle = liftColors[link.lower];
+  c.globalAlpha = 0.55;
+  c.lineWidth = 1.25;
+  c.setLineDash([2, 4]);
+  c.beginPath();
+  c.moveTo(x, y);
+  c.lineTo(x, y - rise);
+  c.stroke();
+  c.setLineDash([]);
+  c.translate(0, -rise);
+  matrix(c, v);
+  c.lineWidth = 0.3;
+  c.beginPath();
+  c.arc(link.x, link.y, link.radius, 0, tau);
+  c.stroke();
+  c.restore();
+}
+function liftPad(c, v, link, level, now) {
+  const { x, y, radius, lower } = link;
+  const up = level === lower;
+  const color = liftColors[lower];
+  c.save();
+  matrix(c, v);
+  c.translate(x, y);
+  c.beginPath();
+  c.arc(0, 0, radius, 0, tau);
+  c.fillStyle = '#13252e';
+  c.fill();
+  c.strokeStyle = color;
+  c.lineWidth = 0.6;
+  c.stroke();
+  c.globalAlpha = 0.45 + 0.2 * Math.sin(now / 320);
+  c.beginPath();
+  c.arc(0, 0, radius * 1.22, 0, tau);
+  c.lineWidth = 0.25;
+  c.stroke();
+  c.restore();
+  const [px, py] = project(v, x, y);
+  c.save();
+  c.font = '700 ' + Math.max(10, Math.min(17, radius * v.scale)) + 'px Barlow, sans-serif';
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.strokeStyle = '#13252e';
+  c.lineWidth = 2.5;
+  c.fillStyle = color;
+  const label = up ? '↑' + (level + 2) : '↓' + level;
+  c.strokeText(label, px, py);
+  c.fillText(label, px, py);
+  c.restore();
 }
 function face(c, view, points, color) {
   poly(c, points.map(([x, y, z]) => project(view, x, y, z)), color);
@@ -158,13 +247,13 @@ function deck(c, v, width, height, borderless) {
   }
   c.restore();
 }
-function trails(c, list, v, preview) {
+function trails(c, list, v, preview, level) {
   c.save();
   matrix(c, v);
   c.lineCap = 'round';
   c.lineJoin = 'round';
   for (const t of list) {
-    if (t.points.length < 4) continue;
+    if ((t.level ?? 0) !== level || t.points.length < 4) continue;
     path(c, t.points);
     c.strokeStyle = t.color;
     c.globalAlpha = 0.12;
@@ -328,10 +417,66 @@ function demoScene(now) {
   return { size: 100, trails, racers, pickups: {} };
 }
 
+function drawRacer(ctx, r, v, demo, phase, pickupRadius, now) {
+  bike(ctx, r, v, demo);
+  if (!demo && phase === 'warmup' && r.alive && r.x !== null) {
+    ctx.save();
+    matrix(ctx, v);
+    ctx.translate(r.x, r.y);
+    ctx.rotate(r.angle);
+    line(ctx, 2, 0, 5, 0, r.color, 0.3);
+    poly(
+      ctx,
+      [
+        [5.6, 0],
+        [4.3, -0.65],
+        [4.3, 0.65],
+      ],
+      r.color,
+    );
+    ctx.restore();
+    ctx.fillStyle = '#eef3f5';
+    ctx.font = '600 13px Barlow, sans-serif';
+    ctx.textAlign = 'center';
+    const [x, y] = project(v, r.x, r.y);
+    ctx.fillText(r.name, x, y - 2 * v.scale - 6);
+  }
+  if (!demo && r.alive && r.x !== null && Object.keys(r.effects).length) {
+    const effects = Object.values(r.effects),
+      step = Math.min(12, pickupRadius * 1.6);
+    const [px, y] = project(v, r.x, r.y);
+    const py = y - 2.4 * bikeScale(r.radius, false) * v.scale - step;
+    effects.forEach((f, n) => {
+      if (f.until - Date.now() < 1000 && Math.floor(now / 100) % 2) return;
+      pickupIcon(ctx, f.type, px + (n - effects.length / 2) * step, py, step);
+    });
+  }
+  if (r.diedAt && now - r.diedAt < 650) {
+    const t = (now - r.diedAt) / 650;
+    ctx.save();
+    matrix(ctx, v);
+    ctx.globalAlpha = 1 - t;
+    for (let i = 0; i < 12; i++) {
+      const a = (i * tau) / 12,
+        rad = 1 + t * 4;
+      line(
+        ctx,
+        r.x + Math.cos(a) * rad,
+        r.y + Math.sin(a) * rad,
+        r.x + Math.cos(a) * (rad + 0.75),
+        r.y + Math.sin(a) * (rad + 0.75),
+        r.color,
+        0.27,
+      );
+    }
+    ctx.restore();
+  }
+}
+
 // The match, lobby preview, and field guide share the same camera and arena artwork.
 export function createArenaPainter(canvas, demo = false, clientId = null) {
   const ctx = canvas.getContext('2d');
-  let cachedDeck, deckKey;
+  const backdrops = [];
   return (scene, now) => {
     const w = canvas.clientWidth,
       h = canvas.clientHeight;
@@ -349,80 +494,49 @@ export function createArenaPainter(canvas, demo = false, clientId = null) {
     }
     const topDown = scene.arenaView === 'top-down';
     const width = scene.width ?? scene.size, height = scene.height ?? scene.size;
-    const key = [w, h, dpr, width, height, scene.borderless, topDown].join(',');
-    const v = camera(w, h, width, height, demo, topDown);
-    if (key !== deckKey) {
-      deckKey = key;
-      cachedDeck = document.createElement('canvas');
-      cachedDeck.width = canvas.width;
-      cachedDeck.height = canvas.height;
-      const dc = cachedDeck.getContext('2d');
-      dc.scale(dpr, dpr);
-      deck(dc, v, width, height, scene.borderless);
-    }
-    ctx.clearRect(0, 0, w, h);
-    ctx.drawImage(cachedDeck, 0, 0, w, h);
-    trails(ctx, scene.trails, v, demo);
-    // The field guide uses enlarged bikes and props for its miniature lessons.
-    const pickupRadius = (demo ? 3 : 1.2) * v.scale;
-    for (const p of Object.values(scene.pickups)) pickup(ctx, p, v, pickupRadius);
+    const count = scene.levelCount ?? 1;
     const racers = Object.values(scene.racers);
+    const focuses = count > 1 ? platformViews(racers, clientId) : [{level: 0, riders: []}];
     if (!topDown) racers.sort((a, b) => (a.x - b.x) * B + (a.y - b.y) * D);
-    for (const r of racers) {
-      bike(ctx, r, v, demo);
-      if (!demo && scene.phase === 'warmup' && r.alive && r.x !== null) {
-        ctx.save();
-        matrix(ctx, v);
-        ctx.translate(r.x, r.y);
-        ctx.rotate(r.angle);
-        line(ctx, 2, 0, 5, 0, r.color, 0.3);
-        poly(
-          ctx,
-          [
-            [5.6, 0],
-            [4.3, -0.65],
-            [4.3, 0.65],
-          ],
-          r.color,
-        );
-        ctx.restore();
-        ctx.fillStyle = '#eef3f5';
-        ctx.font = '600 13px Barlow, sans-serif';
-        ctx.textAlign = 'center';
-        const [x, y] = project(v, r.x, r.y);
-        ctx.fillText(r.name, x, y - 2 * v.scale - 6);
-      }
-      if (!demo && r.alive && r.x !== null && Object.keys(r.effects).length) {
-        const effects = Object.values(r.effects),
-          step = Math.min(12, pickupRadius * 1.6);
-        const [px, y] = project(v, r.x, r.y);
-        const py = y - 2.4 * bikeScale(r.radius, false) * v.scale - step;
-        effects.forEach((f, n) => {
-          if (f.until - Date.now() < 1000 && Math.floor(now / 100) % 2) return;
-          pickupIcon(ctx, f.type, px + (n - effects.length / 2) * step, py, step);
-        });
-      }
-      if (r.diedAt && now - r.diedAt < 650) {
-        const t = (now - r.diedAt) / 650;
-        ctx.save();
-        matrix(ctx, v);
-        ctx.globalAlpha = 1 - t;
-        for (let i = 0; i < 12; i++) {
-          const a = (i * tau) / 12,
-            rad = 1 + t * 4;
-          line(
-            ctx,
-            r.x + Math.cos(a) * rad,
-            r.y + Math.sin(a) * rad,
-            r.x + Math.cos(a) * (rad + 0.75),
-            r.y + Math.sin(a) * (rad + 0.75),
-            r.color,
-            0.27,
-          );
+    const pickups = Object.values(scene.pickups);
+    const spacing = height * 0.14;
+    ctx.clearRect(0, 0, w, h);
+    backdrops.length = focuses.length;
+    paintViewports(ctx, focuses, w, h, (focus, vw, vh, index) => {
+      const {level} = focus;
+      const key = [vw, vh, dpr, width, height, scene.borderless, topDown, count, level].join(',');
+      if (backdrops[index]?.key !== key) {
+        const v = camera(vw, vh, width, height, demo, topDown, spacing * (count - 1));
+        const rise = spacing * v.lift;
+        v.y -= level * rise;
+        const surface = document.createElement('canvas');
+        surface.width = Math.max(1, Math.round(vw * dpr));
+        surface.height = Math.max(1, Math.round(vh * dpr));
+        const dc = surface.getContext('2d');
+        dc.scale(surface.width / vw, surface.height / vh);
+        deck(dc, v, width, height, scene.borderless);
+        for (let upper = level + 1; upper < count; upper++) {
+          const distance = upper - level;
+          overheadDeck(dc, v, width, height, distance * rise, distance);
         }
-        ctx.restore();
+        backdrops[index] = {key, v, rise, surface};
       }
-    }
+      const {v, rise, surface} = backdrops[index];
+      ctx.drawImage(surface, 0, 0, vw, vh);
+      for (const link of scene.links ?? []) {
+        if (link.lower === level) liftShaft(ctx, v, link, rise);
+        if (link.lower === level || link.lower + 1 === level) liftPad(ctx, v, link, level, now);
+      }
+      trails(ctx, scene.trails, v, demo, level);
+      const pickupRadius = (demo ? 3 : 1.2) * v.scale;
+      for (const p of pickups) {
+        if ((p.level ?? 0) === level) pickup(ctx, p, v, pickupRadius);
+      }
+      for (const r of racers) {
+        if ((r.level ?? 0) === level) drawRacer(ctx, r, v, demo, scene.phase, pickupRadius, now);
+      }
+      if (count > 1) floorCaption(ctx, focus, count, focuses.length > 1, clientId, vw);
+    });
   };
 }
 

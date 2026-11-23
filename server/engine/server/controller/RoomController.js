@@ -61,6 +61,9 @@ export default function RoomController(room)
         onConfigArenaShape: function ([data, reply]) {
             controller.onConfigArena(this, 'room:config:arena-shape', {arenaShape: data.arenaShape}, reply);
         },
+        onConfigArenaLevels: function ([data, reply]) {
+            controller.onConfigArena(this, 'room:config:arena-levels', {isometricLevels: data.isometricLevels}, reply);
+        },
         onConfigMaxScore: function (data) { controller.onConfigMaxScore(this, data[0], data[1]); },
         onConfigVariable: function (data) { controller.onConfigVariable(this, data[0], data[1]); },
         onConfigBonus: function (data) { controller.onConfigBonus(this, data[0], data[1]); },
@@ -252,6 +255,7 @@ RoomController.prototype.setRoomMaster = function(client)
         this.roomMaster.on('room:config:open', this.callbacks.onConfigOpen);
         this.roomMaster.on('room:config:arena-view', this.callbacks.onConfigArenaView);
         this.roomMaster.on('room:config:arena-shape', this.callbacks.onConfigArenaShape);
+        this.roomMaster.on('room:config:arena-levels', this.callbacks.onConfigArenaLevels);
         this.roomMaster.on('room:config:max-score', this.callbacks.onConfigMaxScore);
         this.roomMaster.on('room:config:variable', this.callbacks.onConfigVariable);
         this.roomMaster.on('room:config:bonus', this.callbacks.onConfigBonus);
@@ -274,6 +278,7 @@ RoomController.prototype.removeRoomMaster = function()
         this.roomMaster.removeListener('room:config:open', this.callbacks.onConfigOpen);
         this.roomMaster.removeListener('room:config:arena-view', this.callbacks.onConfigArenaView);
         this.roomMaster.removeListener('room:config:arena-shape', this.callbacks.onConfigArenaShape);
+        this.roomMaster.removeListener('room:config:arena-levels', this.callbacks.onConfigArenaLevels);
         this.roomMaster.removeListener('room:config:max-score', this.callbacks.onConfigMaxScore);
         this.roomMaster.removeListener('room:config:variable', this.callbacks.onConfigVariable);
         this.roomMaster.removeListener('room:config:bonus', this.callbacks.onConfigBonus);
@@ -678,11 +683,15 @@ RoomController.prototype.onConfigArena = function(client, event, setting, reply)
     const config = this.room.config;
     if (setting.arenaView) {
         config.arenaView = setting.arenaView;
+    } else if (setting.isometricLevels !== undefined) {
+        if (config.arenaView !== 'isometric') return reply({success: false});
+        config.isometricLevels = setting.isometricLevels;
     } else {
         if (config.arenaView !== 'top-down') return reply({success: false});
         config.topDownShape = setting.arenaShape;
     }
-    const arena = {arenaView: config.arenaView, arenaShape: config.arenaShape};
+    const arena = setting.isometricLevels !== undefined ? setting :
+        {arenaView: config.arenaView, arenaShape: config.arenaShape};
     reply({success: true, ...arena});
     this.socketGroup.addEvent(event, arena);
 };

@@ -28,6 +28,7 @@ export default function BaseRoomConfig(room)
 
     this.room     = room;
     this.arenaView = 'isometric';
+    this.isometricLevels = 1;
     this.topDownShape = 'widescreen';
     this.maxScore = null;
     this.open     = true;
@@ -248,6 +249,7 @@ BaseRoomConfig.prototype.serialize = function()
 {
     return {
         arenaView: this.arenaView,
+        isometricLevels: this.isometricLevels,
         arenaShape: this.arenaShape,
         maxScore: this.maxScore,
         variables: this.variables,

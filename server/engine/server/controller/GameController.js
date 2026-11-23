@@ -34,6 +34,7 @@ export default function GameController(game)
     this.onCleanageddon = this.onCleanageddon.bind(this);
     this.onClear        = this.onClear.bind(this);
     this.onBorderless   = this.onBorderless.bind(this);
+    this.onPlatformLinks = links => this.socketGroup.addEvent('platform:links', links);
     this.onEnd          = this.onEnd.bind(this);
     this.stopWaiting    = this.stopWaiting.bind(this);
 
@@ -43,7 +44,7 @@ export default function GameController(game)
     };
 
     this.view = makeMatch(game.room.players.items.map(player => player.serialize()), game.size,
-        game.maxScore, game.room.config.arenaView, game.room.config.arenaShape);
+        game.maxScore, game.room.config.arenaView, game.room.config.arenaShape, game.levelCount);
     const broadcast = this.socketGroup.addEvent.bind(this.socketGroup);
     this.socketGroup.addEvent = (name, data) => {
         applyMatchEvent(this.view, name, data);
@@ -78,6 +79,7 @@ GameController.prototype.loadGame = function()
     this.game.on('round:new', this.onRoundNew);
     this.game.on('round:end', this.onRoundEnd);
     this.game.on('borderless', this.onBorderless);
+    this.game.on('platform:links', this.onPlatformLinks);
     this.game.bonusManager.on('bonus:pop', this.onBonusPop);
     this.game.bonusManager.on('bonus:clear', this.onBonusClear);
 
@@ -106,6 +108,7 @@ GameController.prototype.unloadGame = function()
     this.game.removeListener('round:new', this.onRoundNew);
     this.game.removeListener('round:end', this.onRoundEnd);
     this.game.removeListener('borderless', this.onBorderless);
+    this.game.removeListener('platform:links', this.onPlatformLinks);
     this.game.bonusManager.removeListener('bonus:pop', this.onBonusPop);
     this.game.bonusManager.removeListener('bonus:clear', this.onBonusClear);
 
@@ -389,7 +392,8 @@ GameController.prototype.onBonusPop = function(bonus)
         bonus.id,
         this.compressor.compress(bonus.x),
         this.compressor.compress(bonus.y),
-        bonus.constructor.name
+        bonus.constructor.name,
+        bonus.body.level
     ]);
 };
 

@@ -94,10 +94,12 @@ BonusManager.prototype.popBonus = function ()
             var BonusType = this.getRandomBonusType();
 
             if (BonusType) {
-                var position = this.getRandomPosition(BaseBonus.prototype.radius, this.bonusPopingMargin);
+                const levels = this.game.levelCount;
+                const level = levels > 1 ? Math.floor(Math.random() * levels) : 0;
+                var position = this.getRandomPosition(BaseBonus.prototype.radius, this.bonusPopingMargin, level);
                 if (!position) return;
                 var bonus = new BonusType(position[0], position[1]);
-                this.add(bonus);
+                this.add(bonus, level);
             }
         }
     }
@@ -111,13 +113,17 @@ BonusManager.prototype.popBonus = function ()
  *
  * @return {Array}
  */
-BonusManager.prototype.getRandomPosition = function(radius, border)
+BonusManager.prototype.getRandomPosition = function(radius, border, level = 0)
 {
     const arena = this.game.world;
     const margin = radius + border * arena.height;
     const body = new Body(0, 0, margin);
+    body.level = level;
     for (let attempt = 0; attempt <= 100; attempt++) {
         arena.randomizePosition(body, margin);
+        if (this.game.platforms?.links.some(link =>
+            (level === link.lower || level === link.lower + 1) &&
+            Math.hypot(body.x - link.x, body.y - link.y) < radius + link.radius)) continue;
         if (arena.testBody(body) && this.world.testBody(body)) return [body.x, body.y];
     }
     return null;
@@ -145,9 +151,10 @@ BonusManager.prototype.testCatch = function(avatar)
  *
  * @param {Bonus} bonus
  */
-BonusManager.prototype.add = function (bonus)
+BonusManager.prototype.add = function (bonus, level = 0)
 {
     if (BaseBonusManager.prototype.add.call(this, bonus)) {
+        bonus.body.level = level;
         this.world.addBody(bonus.body);
         this.emit('bonus:pop', bonus);
 

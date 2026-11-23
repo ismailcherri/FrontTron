@@ -7,6 +7,10 @@ export const arenaShapes = {
   square: 'Square',
   widescreen: 'Widescreen (16:9)',
 };
+export const platformCounts = [1, 2, 3];
+export function arenaLevelCount(view, levels) {
+  return view === 'isometric' && platformCounts.includes(levels) ? levels : 1;
+}
 export function arenaShapeForView(view, shape) {
   return view === 'top-down' && shape === 'widescreen' ? 'widescreen' : 'square';
 }

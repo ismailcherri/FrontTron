@@ -13,6 +13,7 @@ export default function Body (x, y, radius, data)
     this.x       = x;
     this.y       = y;
     this.radius  = radius;
+    this.level   = 0;
     this.data    = data;
     this.islands = new Collection();
     this.id      = null;

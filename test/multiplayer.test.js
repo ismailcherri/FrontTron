@@ -50,6 +50,48 @@ test('room discovery, private invites, local players, chat, moderation and maste
   assert.equal((await b.wait('room:master', (d) => d.client === b.id)).client, b.id);
   assert.equal(s.repository.get(name).players.getById(alpha.id), null);
 });
+test('platform settings sync to the room and late spectators see the active lifts and rider level', async t => {
+  const s = await setup(t), host = await s.peer(), guest = await s.peer(), watcher = await s.peer();
+  const name = 'Lift circuit', event = 'room:config:arena-levels';
+  await host.request('room:create', {name});
+  await host.request('room:join', {name});
+  await host.request('player:add', {name: 'Pilot'});
+  const rider = (await host.wait('room:join')).player.id;
+  assert.equal((await guest.request('room:join', {name})).room.config.isometricLevels, 1);
+  assert.equal((await guest.request(event, {isometricLevels: 3})).success, false);
+  for (const invalid of [0, 4, 1.5, '3']) {
+    assert.equal((await host.request(event, {isometricLevels: invalid})).success, false);
+  }
+  assert.equal((await host.request(event, {isometricLevels: 3})).success, true);
+  assert.equal((await guest.wait(event)).isometricLevels, 3);
+  for (const arenaView of ['top-down', 'first-person']) {
+    await host.request('room:config:arena-view', {arenaView});
+    assert.equal((await host.request(event, {isometricLevels: 2})).success, false);
+  }
+  await host.request('room:config:arena-view', {arenaView: 'isometric'});
+  await host.request('room:ready', {player: rider});
+  await host.wait('room:game:start');
+  host.send('ready');
+  const links = await host.wait('platform:links');
+  assert.deepEqual(links.map(p => p.lower), [0, 1]);
+  assert.equal((await host.request(event, {isometricLevels: 1})).success, false);
+  await host.wait('game:start');
+  const game = s.repository.get(name).game;
+  t.after(() => { if (game.avatars) game.abort(); });
+  game.clearFrame();
+  const avatar = game.avatars.getById(rider);
+  avatar.setPosition(links[0].x - links[0].radius - 1, links[0].y);
+  avatar.setAngle(0);
+  game.update(100);
+  await host.wait('property', ([id, key, level]) => id === rider && key === 'level' && level === 1);
+  assert.equal((await watcher.request('room:join', {name})).room.config.isometricLevels, 3);
+  watcher.send('ready');
+  const snapshot = await watcher.wait('spectate');
+  assert.equal(snapshot.levelCount, 3);
+  assert.deepEqual(snapshot.links, links);
+  assert.equal(snapshot.racers[rider].level, 1);
+});
+
 test(
   'two remote riders steer, a spectator joins mid-round, scores settle and a rematch starts',
   { timeout: 35000 },
